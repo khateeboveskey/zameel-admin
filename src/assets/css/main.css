@@ -1,11 +1,14 @@
 @import "tailwindcss";
 @import "@nuxt/ui-pro";
 
-:root {
-  --ui-primary: #4f46e5;
-  --ui-bg: white;
-}
-
 @theme {
   --font-sans: 'Alexandria', sans-serif;
+}
+
+* {
+  direction: rtl;
+}
+
+button, a, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], label, select, .summary, [tabindex]:not([tabindex="-1"]), [onclick], [aria-haspopup="true"] {
+  @apply cursor-pointer;
 }

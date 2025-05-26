@@ -16,5 +16,8 @@ export default defineNuxtConfig({
       { name: 'Alexandria', provider: 'google' },
     ]
   },
-  modules: ['@nuxt/ui-pro', '@nuxt/fonts']
+  svgo: {
+    componentPrefix: 'Icon',
+  },
+  modules: ['@nuxt/ui-pro', '@nuxt/fonts', 'nuxt-svgo']
 })
