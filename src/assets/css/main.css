@@ -5,3 +5,7 @@
   --ui-primary: #4f46e5;
   --ui-bg: white;
 }
+
+@theme {
+  --font-sans: 'Alexandria', sans-serif;
+}

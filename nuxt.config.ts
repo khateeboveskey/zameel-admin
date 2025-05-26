@@ -11,5 +11,10 @@ export default defineNuxtConfig({
       tailwindcss(),
     ],
   },
-  modules: ['@nuxt/ui-pro']
+  fonts: {
+    families: [
+      { name: 'Alexandria', provider: 'google' },
+    ]
+  },
+  modules: ['@nuxt/ui-pro', '@nuxt/fonts']
 })
