@@ -4,8 +4,6 @@ import { ar } from '@nuxt/ui-pro/locale'
 
 <template>
   <UApp :locale="ar">
-    <NuxtLayout name="dashboard">
-      <NuxtPage />
-    </NuxtLayout>
+    <NuxtPage />
   </UApp>
 </template>
