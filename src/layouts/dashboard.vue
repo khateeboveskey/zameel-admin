@@ -1,6 +1,6 @@
 <template>
   <UDashboardGroup>
-    <UDashboardSidebar :max-size="5" side="right" collapsible resizable :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-60' }">
+    <UDashboardSidebar :max-size="5" side="right" collapsible resizable :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-60 border border-default rounded-e-xl' }">
       <template #header="{ collapsed }">
         <IconLogo v-if="!collapsed" class="text-9xl" />
         <!-- <UDashboardSidebarCollapse variant="subtle" class="rotate-180" size="sm" /> -->
@@ -39,35 +39,42 @@ const items: NavigationMenuItem[][] = [
     {
       label: 'الرئيسية',
       icon: 'i-lucide-house',
-      active: true,
+      to: '/',
       class: 'mb-4'
     },
     {
-      label: 'المستخدمين',
+      label: 'المستخدمون',
+      to: '/users',
       icon: 'i-lucide-users',
     },
     {
       label: 'الكليات',
+      to: '/colleges',
       icon: 'i-lucide-university',
     },
     {
       label: 'التخصصات',
+      to: '/majors',
       icon: 'i-lucide-square-library',
     },
     {
       label: 'الأكاديميين',
+      to: '/academics',
       icon: 'i-lucide-book-user',
     },
     {
       label: 'المواد',
+      to: '/subjects',
       icon: 'i-lucide-book-open',
     },
     {
       label: 'المجموعات',
+      to: '/groups',
       icon: 'i-lucide-graduation-cap',
     },
     {
       label: 'الإعدادات',
+      to: '/settings',
       icon: 'i-lucide-settings',
       defaultOpen: true,
       class: 'mt-4',
