@@ -45,7 +45,7 @@ definePageMeta({
 </script>
 
 <template>
-  <div class="h-screen flex flex-col items-center justify-center gap-4 p-4">
+  <div class="h-screen flex flex-col items-center justify-center gap-4 p-4 bg-muted">
     <UPageCard class="w-full max-w-md">
       <UAuthForm
         :ui="{
@@ -56,6 +56,10 @@ definePageMeta({
         description="قم بتسجيل الدخول كمشرف في زميل."
         icon="i-lucide-user"
         :fields="fields"
+        :submit="{
+          label: 'تسجيل الدخول',
+          loading: false
+        }"
         @submit="onSubmit"
       >
         <template #leading>

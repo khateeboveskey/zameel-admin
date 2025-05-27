@@ -5,6 +5,12 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    public: {
+      baseApiUrl: process.env.BASE_API_URL || 'https://api.zameel.mahmoudahmed.me',
+      apiPrefix: process.env.API_PREFIX || '/api/'
+    }
+  },
   srcDir: 'app/',
   vite: {
     plugins: [
