@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { User } from '~/models/user';
+import { Orion } from '@tailflow/laravel-orion/lib/orion';
 
-const toast = useToast()
+const pending = ref(false);
+const { login } = useAuth();
 
 const fields = [{
   name: 'email',
@@ -25,18 +28,17 @@ const fields = [{
 const schema = z.object({
   email: z.string({ required_error: 'هذا الحقل مطلوب' }).email('بريد إلكتروني غير صالح'),
   password: z.string({ required_error: 'هذا الحقل مطلوب' }).min(8, 'يجب أن يكون طول كلمة المرور 8 أحرف على الأقل')
+    .max(64, 'يجب ألا يتجاوز طول كلمة المرور 64 حرفًا'),
+  remember: z.boolean().optional(),
 })
 
 type Schema = z.output<typeof schema>
 
-function onSubmit(payload: FormSubmitEvent<Schema>) {
-  console.log('Submitted', payload)
-  toast.add({
-    title: 'تم تسجيل الدخول بنجاح',
-    description: 'مرحبًا بك في زميل!',
-    color: 'success',
-    icon: 'i-lucide-check-circle',
-  })
+async function onSubmit(payload: FormSubmitEvent<Schema>) {
+  pending.value = true;
+  const res = await login(payload.data.email, payload.data.password, Boolean(payload.data.remember));
+
+  pending.value = false;
 }
 
 definePageMeta({
@@ -58,7 +60,7 @@ definePageMeta({
         :fields="fields"
         :submit="{
           label: 'تسجيل الدخول',
-          loading: false
+          loading: pending
         }"
         @submit="onSubmit"
       >

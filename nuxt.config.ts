@@ -7,8 +7,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      baseApiUrl: process.env.BASE_API_URL || 'https://api.zameel.mahmoudahmed.me',
-      apiPrefix: process.env.API_PREFIX || '/api/'
+      baseApiUrl: process.env.BASE_API_URL || 'https://api.zameel.app',
+      apiPrefix: process.env.API_PREFIX || '/api'
     }
   },
   srcDir: 'app/',
@@ -25,5 +25,5 @@ export default defineNuxtConfig({
   svgo: {
     componentPrefix: 'Icon',
   },
-  modules: ['@nuxt/ui-pro', '@nuxt/fonts', 'nuxt-svgo']
+  modules: ['@nuxt/ui-pro', '@nuxt/fonts', 'nuxt-svgo', '@vueuse/nuxt']
 })
