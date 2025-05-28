@@ -4,4 +4,5 @@ export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
 
   Orion.init(config.public.baseApiUrl);
+  Orion.setToken(useUserStore().token || '');
 })

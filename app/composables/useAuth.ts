@@ -35,8 +35,8 @@ export const useAuth = () => {
         icon: 'i-lucide-check-circle',
       })
 
-      const token = data.value?.data.token || ''
-      Orion.setToken(token)
+      const token = data.value?.data.token || '';
+
       if (remember) {
         localStorage.setItem('token', token)
       } else {

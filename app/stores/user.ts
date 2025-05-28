@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
-import type { User } from '~/models/user'
 
 interface UserState {
-  user: User | null
+  user: any
   isAuthenticated: boolean
   token: string | null
   remember: boolean
@@ -23,7 +22,7 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
-    setUser(userData: User) {
+    setUser(userData: any) {
       this.user = userData
       this.isAuthenticated = true
     },
@@ -36,7 +35,7 @@ export const useUserStore = defineStore('user', {
       this.remember = remember
     },
 
-    login(userData: User, token: string, remember = false) {
+    login(userData: any, token: string, remember = false) {
       this.setUser(userData)
       this.setToken(token)
       this.setRemember(remember)
@@ -49,7 +48,7 @@ export const useUserStore = defineStore('user', {
       this.remember = false
     },
 
-    updateUser(userData: Partial<User>) {
+    updateUser(userData: any) {
       if (this.user) {
         this.user = { ...this.user, ...userData }
       }

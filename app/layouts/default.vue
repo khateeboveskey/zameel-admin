@@ -1,30 +1,72 @@
 <template>
   <UDashboardGroup>
-    <UDashboardSidebar :max-size="5" side="right" collapsible resizable :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-60 border border-default rounded-e-xl' }">
+    <UDashboardSidebar
+      :max-size="5"
+      side="right"
+      collapsible
+      resizable
+      :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-60 border border-default rounded-e-xl' }"
+    >
       <template #header="{ collapsed }">
-        <IconLogo v-if="!collapsed" class="text-9xl" />
+        <IconLogo
+          v-if="!collapsed"
+          class="text-9xl"
+        />
         <!-- <UDashboardSidebarCollapse variant="subtle" class="rotate-180" size="sm" /> -->
       </template>
 
       <template #default="{ collapsed }">
-        <UButton :label="collapsed ? undefined : 'بحث...'" icon="i-lucide-search" color="neutral" variant="outline" block :square="collapsed">
-          <template v-if="!collapsed" #trailing>
+        <UButton
+          :label="collapsed ? undefined : 'بحث...'"
+          icon="i-lucide-search"
+          color="neutral"
+          variant="outline"
+          block
+          :square="collapsed"
+        >
+          <template
+            v-if="!collapsed"
+            #trailing
+          >
             <div class="flex items-center gap-0.5 ms-auto">
-              <UKbd value="meta" variant="subtle" />
-              <UKbd value="K" variant="subtle" />
+              <UKbd
+                value="meta"
+                variant="subtle"
+              />
+              <UKbd
+                value="K"
+                variant="subtle"
+              />
             </div>
           </template>
         </UButton>
 
-        <UNavigationMenu :external-icon="false" :collapsed="collapsed" :items="items[0]" orientation="vertical" />
-        <UNavigationMenu :collapsed="collapsed" :items="items[1]" orientation="vertical" class="mt-auto" />
+        <UNavigationMenu
+          :external-icon="false"
+          :collapsed="collapsed"
+          :items="items[0]"
+          orientation="vertical"
+        />
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="items[1]"
+          orientation="vertical"
+          class="mt-auto"
+        />
       </template>
 
       <template #footer="{ collapsed }">
-        <UButton :avatar="{
-          class: 'me-2',
-          src: 'https://github.com/khateeboveskey.png'
-        }" :label="collapsed ? undefined : 'عبدالرحمن الخطيب'" color="neutral" variant="ghost" class="w-full" :block="collapsed" />
+        <UButton
+          :avatar="{
+            class: 'me-2',
+            src: 'https://github.com/khateeboveskey.png'
+          }"
+          :label="collapsed ? undefined : useUserStore().user.name"
+          color="neutral"
+          variant="ghost"
+          class="w-full"
+          :block="collapsed"
+        />
       </template>
     </UDashboardSidebar>
     <slot />
@@ -33,6 +75,8 @@
 
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+
+
 
 const items: NavigationMenuItem[][] = [
   [
