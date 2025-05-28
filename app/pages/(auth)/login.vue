@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import { User } from '~/models/user';
-import { Orion } from '@tailflow/laravel-orion/lib/orion';
 
+const toast = useToast();
 const pending = ref(false);
-const { login } = useAuth();
+const { login, user, isAuthenticated } = useAuth();
+const route = useRoute();
 
 const fields = [{
   name: 'email',
@@ -36,7 +36,16 @@ type Schema = z.output<typeof schema>
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
   pending.value = true;
-  const res = await login(payload.data.email, payload.data.password, Boolean(payload.data.remember));
+
+  const result = await login(
+    payload.data.email,
+    payload.data.password,
+    Boolean(payload.data.remember)
+  );
+
+  if (!result.error) {
+    console.log(user.value, isAuthenticated.value);
+  }
 
   pending.value = false;
 }

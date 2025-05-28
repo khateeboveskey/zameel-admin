@@ -1,89 +1,96 @@
-import { Orion } from '@tailflow/laravel-orion/lib/orion';
+import { Orion } from '@tailflow/laravel-orion/lib/orion'
 
-type LoginResponse = {
-  data: {
-    token: string;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+export const useAuth = () => {
+  const userStore = useUserStore()
+  const router = useRouter()
+  const toast = useToast()
 
-export function useAuth() {
-  const toast = useToast();
+  const login = async (email: string, password: string, remember = false) => {
+    try {
+      // Call your login API
+      const { data, error } = await useCachedFetch('/login', {
+        method: 'POST',
+        body: {
+          email,
+          password,
+          deviceName: navigator.userAgent.slice(0, 45),
+        },
+      })
 
-  // #region Login
-  const login = async (email: string, password: string, remember: boolean) => {
-    const deviceName = navigator.userAgent.slice(0, 45);
+      if (error.value) {
+        toast.add({
+          title: 'خطأ في تسجيل الدخول',
+          description: getArErrorMessage(String(error.value)),
+          color: 'error',
+          icon: 'i-lucide-alert-triangle',
+        })
+        return { error: error.value }
+      }
 
-    const { data, error } = await useCachedFetch<LoginResponse>('/login', {
-      method: 'POST',
-      body: {
-        email,
-        password,
-        deviceName,
-      },
-    });
 
-    if (error.value) {
       toast.add({
-        title: 'خطأ في تسجيل الدخول',
-        description: getArErrorMessage(String(error.value)),
-        color: 'error',
-        icon: 'i-lucide-alert-triangle',
-      });
-      return;
+        title: 'تم تسجيل الدخول بنجاح',
+        description: 'مرحبًا بك في زميل!',
+        color: 'success',
+        icon: 'i-lucide-check-circle',
+      })
+
+      const token = data.value?.data.token || ''
+      Orion.setToken(token)
+      if (remember) {
+        localStorage.setItem('token', token)
+      } else {
+        sessionStorage.setItem('token', token)
+      }
+
+      userStore.login(data.value?.data, token, remember)
+      await router.push('/')
+
+      return { success: true }
+    } catch (error: any) {
+      return { error: error.message }
     }
-
-    toast.add({
-      title: 'تم تسجيل الدخول بنجاح',
-      description: 'مرحبًا بك في زميل!',
-      color: 'success',
-      icon: 'i-lucide-check-circle',
-    });
-
-    Orion.setToken(data.value?.data.token || '');
-
-    if (remember) {
-      localStorage.setItem('token', data.value?.data.token || '');
-    } else {
-      sessionStorage.setItem('token', data.value?.data.token || '');
-    }
-
-    return { data, error }
   }
 
-  // #region Logout
   const logout = async () => {
-    const { data, error } = await useCachedFetch('/logout', {
-      method: 'POST',
-    });
+    try {
+      const { error } = await useCachedFetch('/logout', { method: 'POST' })
+      if (error.value) {
+        toast.add({
+          title: 'خطأ في تسجيل الخروج',
+          description: getArErrorMessage(String(error.value)),
+          color: 'error',
+          icon: 'i-lucide-alert-triangle',
+        })
+        return
+      }
 
-    if (error.value) {
       toast.add({
-        title: 'خطأ في تسجيل الخروج',
-        description: getArErrorMessage(String(error.value)),
-        color: 'error',
-        icon: 'i-lucide-alert-triangle',
-      });
-      return;
+        title: 'تم تسجيل الخروج بنجاح',
+        description: 'نأمل أن نراك مرة أخرى قريبًا!',
+        color: 'success',
+        icon: 'i-lucide-check-circle',
+      })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      Orion.setToken('')
+      localStorage.removeItem('token')
+      sessionStorage.removeItem('token')
+      userStore.logout()
+      await router.push('/login')
     }
+  }
 
-    toast.add({
-      title: 'تم تسجيل الخروج بنجاح',
-      description: 'نأمل أن نراك مرة أخرى قريبًا!',
-      color: 'success',
-      icon: 'i-lucide-check-circle',
-    });
-
-    Orion.setToken('');
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('token');
-
-    return { data, error }
+  const checkAuth = () => {
+    return userStore.isLoggedIn
   }
 
   return {
     login,
     logout,
+    checkAuth,
+    user: computed(() => userStore.user),
+    isAuthenticated: computed(() => userStore.isAuthenticated),
   }
 }

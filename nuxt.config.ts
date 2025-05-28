@@ -25,5 +25,8 @@ export default defineNuxtConfig({
   svgo: {
     componentPrefix: 'Icon',
   },
-  modules: ['@nuxt/ui-pro', '@nuxt/fonts', 'nuxt-svgo', '@vueuse/nuxt']
+  modules: ['@nuxt/ui-pro', '@nuxt/fonts', 'nuxt-svgo', '@vueuse/nuxt', '@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt'],
+  pinia: {
+    storesDirs: ['./app/stores/**'],
+  },
 })
