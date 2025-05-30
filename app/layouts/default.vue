@@ -5,7 +5,7 @@
       side="right"
       collapsible
       resizable
-      :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-60 border border-default rounded-e-xl' }"
+      :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-72 border border-default rounded-e-xl' }"
     >
       <template #header="{ collapsed }">
         <IconLogo
@@ -56,27 +56,31 @@
       </template>
 
       <template #footer="{ collapsed }">
-        <UButton
+        <UUser
+          :name="auth.user.name"
+          :description="auth.user.email"
           :avatar="{
-            class: 'me-2',
-            src: 'https://github.com/khateeboveskey.png'
+            src: 'https://i.pravatar.cc/150?u=john-doe',
+            icon: 'i-lucide-image'
           }"
-          :label="collapsed ? undefined : useUserStore().user.name"
-          color="neutral"
-          variant="ghost"
-          class="w-full"
-          :block="collapsed"
+          :ui="{
+            wrapper: 'mt-2',
+            avatar: 'me-1',
+            name: 'leading-4!'
+          }"
         />
       </template>
     </UDashboardSidebar>
-    <slot />
+    <UDashboardPanel class="p-10 overflow-y-auto">
+      <slot />
+    </UDashboardPanel>
   </UDashboardGroup>
 </template>
 
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-
+const auth = useUserStore();
 
 const items: NavigationMenuItem[][] = [
   [

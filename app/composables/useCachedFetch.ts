@@ -1,16 +1,18 @@
 export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
   const config = useRuntimeConfig()
   const nuxt = useNuxtApp()
+  const user = useUserStore();
 
-  const result = useFetch<T>(url, {
+  const result = useFetch<T>(url as string, {
     ...opts,
     baseURL: config.public.baseApiUrl + '/' + config.public.apiPrefix,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token') || ''}`,
+      'Authorization': `Bearer ${user.token || ''}`,
       ...(opts as any).headers
     },
+    lazy: true,
     key: url,
     getCachedData: (key) => {
       if (nuxt.isHydrating && nuxt.payload.data[key]) {

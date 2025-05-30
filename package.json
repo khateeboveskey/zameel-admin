@@ -15,6 +15,7 @@
     "@pinia/nuxt": "^0.11.0",
     "@tailflow/laravel-orion": "^4.1.0",
     "@tailwindcss/vite": "^4.1.7",
+    "@tanstack/vue-table": "^8.21.3",
     "@vueuse/nuxt": "^13.3.0",
     "nuxt": "^3.17.4",
     "nuxt-svgo": "^4.2.1",

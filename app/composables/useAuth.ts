@@ -37,11 +37,7 @@ export const useAuth = () => {
 
       const token = data.value?.data.token || '';
 
-      if (remember) {
-        localStorage.setItem('token', token)
-      } else {
-        sessionStorage.setItem('token', token)
-      }
+      userStore.setToken(token)
 
       userStore.login(data.value?.data, token, remember)
       await router.push('/')
@@ -75,7 +71,7 @@ export const useAuth = () => {
       console.error('Logout error:', error)
     } finally {
       Orion.setToken('')
-      localStorage.removeItem('token')
+      userStore.token = ''
       sessionStorage.removeItem('token')
       userStore.logout()
       await router.push('/login')
