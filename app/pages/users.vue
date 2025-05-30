@@ -1,31 +1,70 @@
 <script setup lang="ts">
 import { getPaginationRowModel } from '@tanstack/vue-table'
 import type { TableColumn } from '@nuxt/ui'
+import { useRoleStore } from '~/stores/role'
 
+const roleStore = useRoleStore()
 const table = useTemplateRef('table')
-const currentPage = ref(1);
+const currentPage = ref(1)
+const updatingRole = ref<number[]>([])
 
-let { data: users, pending } = await useCachedFetch<IUserIndexResponse>('/users', {
-  params: {
-    page: currentPage
+// Fetch users
+const { data: users, pending, refresh } = await useCachedFetch<IUserIndexResponse>('/users', {
+  params: { page: currentPage }
+})
+
+// Prepare role options
+const items = computed(() =>
+  roleStore.roles.map(role => ({
+    ...role,
+    label: role.name,
+    value: role.id,
+    id: role.id,
+    icon: role.icon,
+    color: role.color || 'gray'
+  }))
+)
+
+// Selected roles per user (full object)
+const selectedRoles = ref<Record<number, any>>({})
+
+watchEffect(() => {
+  if (users.value?.data) {
+    users.value.data.forEach(user => {
+      selectedRoles.value[user.id] = items.value.find(role => role.id === user.role_id)
+    })
   }
-});
+})
 
+// Update role
+const updateRole = async (userId: number, newRoleId: number) => {
+  updatingRole.value.push(userId)
+  const { data: updatedRoleUser, error } = await useCachedFetch<IUserShowResponse>(`/users/${userId}/roles/${newRoleId}`, {
+    method: 'POST',
+    body: { user: userId, role: newRoleId }
+  })
+
+  updatingRole.value = updatingRole.value.filter(id => id !== userId)
+
+  if (error.value) {
+    console.error(error.value)
+  } else {
+    await refresh()
+    const user = updatedRoleUser.value?.data;
+    useToast().add({
+      title: 'تمت العملية بنجاح',
+      description: `تم تحديث رتبة ${user?.name.split(' ').slice(0, 2).join(' ')} ل${roleStore.getRole(Number(user?.role_id))?.name}`,
+      color: 'success',
+      icon: 'i-lucide-alert-triangle',
+    })
+  }
+}
+
+// Columns
 const columns: TableColumn<IUser>[] = [
-  {
-    accessorKey: 'id',
-    header: 'المعرف',
-    cell: ({ row }) => row.getValue('id')
-  },
-  {
-    accessorKey: 'name',
-    header: 'الاسم',
-    cell: ({ row }) => row.getValue('name')
-  },
-  {
-    accessorKey: 'role_id',
-    header: 'الرتب',
-  },
+  { accessorKey: 'id', header: 'المعرف', cell: ({ row }) => row.getValue('id') },
+  { accessorKey: 'name', header: 'الاسم', cell: ({ row }) => row.getValue('name') },
+  { accessorKey: 'role_id', header: 'الرتبة' },
   {
     accessorKey: 'email_verified_at',
     header: 'تاريخ تأكيد البريد',
@@ -40,52 +79,15 @@ const columns: TableColumn<IUser>[] = [
     accessorKey: 'updated_at',
     header: 'آخر تعديل',
     cell: ({ row }) => toArabicDate(row.getValue('updated_at'))
-  },
-  {
-    accessorKey: 'actions',
-    header: 'الإجراءات',
-  },
+  }
 ]
 
-const getRoleBadge = (
-  id: string | number
-): { color: 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'error' | 'neutral'; icon: string } => {
-  switch (id) {
-    case 1:
-      return { color: 'error', icon: 'lucide-shield-user' }
-    case 2:
-      return { color: 'warning', icon: 'lucide-school' }
-    case 3:
-      return { color: 'success', icon: 'lucide-book' }
-    case 4:
-      return { color: 'secondary', icon: 'lucide-user-round-pen' }
-    case 5:
-      return { color: 'primary', icon: 'lucide-graduation-cap' }
-    default:
-      return { color: 'neutral', icon: 'lucide-graduation-cap' }
-  }
-}
-
-const updateRole = async (userId: number, newRoleId: number) => {
-  const { data: updatedRoleUser, error } = await useCachedFetch(`/users/${userId}/roles/${newRoleId}`, {
-    method: 'POST',
-    body: {
-      user: userId,
-      role: newRoleId
-    }
-  });
-  if (error.value) {
-    console.log(error.value);
-  }
-  console.log(updatedRoleUser.value);
-}
-
+// Pagination state
 const pagination = ref({
   pageIndex: 0,
   pageSize: users.value?.meta.per_page || 15
 })
 </script>
-
 
 <template>
   <div class="space-y-4 pb-4">
@@ -93,9 +95,7 @@ const pagination = ref({
       class="h-[80dvh]"
       ref="table"
       v-model:pagination="pagination"
-      :pagination-options="{
-        getPaginationRowModel: getPaginationRowModel()
-      }"
+      :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
       :sticky="true"
       :loading="pending"
       :columns="columns as any"
@@ -110,9 +110,7 @@ const pagination = ref({
     >
       <template #name-cell="{ row }">
         <div>
-          <p class="font-medium text-highlighted">
-            {{ row.original.name }}
-          </p>
+          <p class="font-medium text-highlighted">{{ row.original.name }}</p>
           <NuxtLink
             external
             target="_blank"
@@ -123,20 +121,24 @@ const pagination = ref({
           </NuxtLink>
         </div>
       </template>
+
       <template #role_id-cell="{ row }">
-        <UBadge
-          :icon="getRoleBadge(row.original.role_id)?.icon"
-          :ui="{
-            base: 'py-0'
-          }"
-          :color="getRoleBadge(row.original.role_id)?.color"
-          variant="subtle"
+        <USelectMenu
+          v-model="selectedRoles[row.original.id]"
+          :items="items"
+          option-attribute="id"
+          :icon="selectedRoles[row.original.id]?.icon"
+          :color="selectedRoles[row.original.id]?.color"
+          :highlight="true"
+          :search-input="false"
+          :loading="updatingRole.includes(row.original.id)"
+          class="w-full mt-2"
+          @update:model-value="val => updateRole(row.original.id, val.id)"
         >
-          <span>{{ getRole(row.original.role_id) }}</span>
-        </UBadge>
-      </template>
-      <template #actions-cell="{ row }">
-        <UButton @click="updateRole(Number(row.original.id), 4)">{{ row.original.id }}</UButton>
+          <template #default>
+            {{ selectedRoles[row.original.id]?.label || 'اختر رتبة' }}
+          </template>
+        </USelectMenu>
       </template>
     </UTable>
 
@@ -145,7 +147,7 @@ const pagination = ref({
         :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
         :items-per-page="table?.tableApi.getState().pagination.pageSize"
         :total="users?.meta.total"
-        @update:page="(p) => currentPage = p"
+        @update:page="p => currentPage = p"
         :ui="{
           last: 'rotate-180 aspect-square h-10 grid place-items-center',
           next: 'rotate-180 aspect-square h-10 grid place-items-center',
