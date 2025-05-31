@@ -8,9 +8,69 @@ const table = useTemplateRef('table')
 const currentPage = ref(1)
 const updatingRole = ref<number[]>([])
 
+// Search state
+const searchTerm = ref('');
+const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
+const selectedRolesFilter = ref<any[]>([])
+const verifiedOnly = ref(false)
+
 // Fetch users
 const { data: users, pending, refresh } = await useCachedFetch<IUserIndexResponse>('/users', {
   params: { page: currentPage }
+})
+
+// Advanced search
+const filters = computed(() => {
+  const filterArr: any[] = []
+
+  if (debouncedSearchTerm.value) {
+    filterArr.push({
+      type: 'or',
+      field: 'name',
+      operator: 'like',
+      value: `%${debouncedSearchTerm.value}%`
+    })
+    filterArr.push({
+      type: 'or',
+      field: 'email',
+      operator: 'like',
+      value: `%${debouncedSearchTerm.value}%`
+    })
+  }
+
+  if (selectedRolesFilter.value.length) {
+    filterArr.push({
+      type: 'and',
+      field: 'role_id',
+      operator: 'in',
+      value: selectedRolesFilter.value.map(role => role.id)
+    })
+  }
+
+  if (verifiedOnly.value) {
+    filterArr.push({
+      type: 'and',
+      field: 'email_verified_at',
+      operator: '!=',
+      value: null
+    })
+  }
+
+  return filterArr.length ? [{ type: 'and', nested: filterArr }] : []
+})
+
+const { data: usersSearchResult, refresh: refreshSearch, pending: searchPending } = await useCachedFetch<IUserIndexResponse>('/users/search', {
+  method: 'POST',
+  body: {
+    filters: filters,
+    page: computed(() => currentPage.value)
+  }
+})
+
+// Watch for filter changes and refresh search
+watch([debouncedSearchTerm, selectedRolesFilter, verifiedOnly], () => {
+  currentPage.value = 1
+  refreshSearch()
 })
 
 // Prepare role options
@@ -21,19 +81,21 @@ const items = computed(() =>
     value: role.id,
     id: role.id,
     icon: role.icon,
-    color: role.color || 'gray'
+    color: role.color || 'neutral'
   }))
 )
 
 // Selected roles per user (full object)
-const selectedRoles = ref<Record<number, any>>({})
-
-watchEffect(() => {
-  if (users.value?.data) {
-    users.value.data.forEach(user => {
-      selectedRoles.value[user.id] = items.value.find(role => role.id === user.role_id)
+const selectedRoles = computed<Record<number, any>>(() => {
+  const map: Record<number, any> = {}
+  if (usersSearchResult.value?.data) {
+    usersSearchResult.value.data.forEach(user => {
+      map[user.id] = items.value.find(role => role.id === user.role_id)
     })
   }
+  console.log(usersSearchResult.value?.data);
+
+  return map
 })
 
 // Update role
@@ -85,21 +147,76 @@ const columns: TableColumn<IUser>[] = [
 // Pagination state
 const pagination = ref({
   pageIndex: 0,
-  pageSize: users.value?.meta.per_page || 15
+  pageSize: computed(() => usersSearchResult.value?.meta.per_page || users.value?.meta.per_page || 15).value
 })
+
+// Watch for pagination changes and update currentPage
+watch(() => pagination.value.pageIndex, (newPageIndex) => {
+  currentPage.value = newPageIndex + 1
+  refreshSearch()
+})
+
+const resetFilters = () => {
+  searchTerm.value = ''
+  selectedRolesFilter.value = []
+  verifiedOnly.value = false
+  currentPage.value = 1
+  refreshSearch()
+}
 </script>
 
 <template>
   <div class="space-y-4 pb-4">
+    <!-- Search & Filters -->
+    <div class="flex flex-nowrap text-nowrap gap-4 items-center">
+      <UInput
+        v-model="searchTerm"
+        placeholder="بحث بالاسم أو البريد"
+        icon="i-lucide-search"
+        class="w-full"
+        clearable
+      />
+      <USelectMenu
+        v-model="selectedRolesFilter"
+        :items="items"
+        option-attribute="id"
+        multiple
+        class="w-72"
+        placeholder="تصفية حسب الرتبة"
+        :search-input="false"
+        clearable
+      >
+        <template #default>
+          <span v-if="selectedRolesFilter.length">
+            {{selectedRolesFilter.map(role => role.label).join(', ')}}
+          </span>
+          <span v-else>كل الرتب</span>
+        </template>
+      </USelectMenu>
+      <UCheckbox
+        v-model="verifiedOnly"
+        label="مفعل البريد فقط"
+        class="items-center"
+      />
+      <UButton
+        icon="i-lucide-rotate-ccw"
+        color="neutral"
+        variant="outline"
+        @click="resetFilters"
+      >
+        إعادة تعيين الفلاتر
+      </UButton>
+    </div>
+
     <UTable
-      class="h-[80dvh]"
       ref="table"
+      empty="لا يوجد بيانات"
       v-model:pagination="pagination"
       :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
       :sticky="true"
-      :loading="pending"
+      :loading="pending || searchPending"
       :columns="columns as any"
-      :data="users?.data"
+      :data="usersSearchResult?.data"
       :ui="{
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
@@ -146,7 +263,7 @@ const pagination = ref({
       <UPagination
         :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
         :items-per-page="table?.tableApi.getState().pagination.pageSize"
-        :total="users?.meta.total"
+        :total="usersSearchResult?.meta?.total ?? users?.meta?.total"
         @update:page="p => currentPage = p"
         :ui="{
           last: 'rotate-180 aspect-square h-10 grid place-items-center',

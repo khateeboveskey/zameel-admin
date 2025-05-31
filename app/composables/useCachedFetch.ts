@@ -1,34 +1,29 @@
 export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
   const config = useRuntimeConfig()
-  const nuxt = useNuxtApp()
-  const user = useUserStore();
+  const user = useUserStore()
 
-  const result = useFetch<T>(url as string, {
+  const queryString = new URLSearchParams(opts.query || {}).toString()
+  const key = queryString ? `${url}?${queryString}` : url
+
+  const result = useFetch<T>(url, {
     ...opts,
-    baseURL: config.public.baseApiUrl + '/' + config.public.apiPrefix,
+    key,
+    baseURL: `${config.public.baseApiUrl}/${config.public.apiPrefix}`,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'Authorization': `Bearer ${user.token || ''}`,
-      ...(opts as any).headers
+      ...(opts.headers || {})
     },
     lazy: true,
-    key: url,
-    getCachedData: (key) => {
-      if (nuxt.isHydrating && nuxt.payload.data[key]) {
-        return nuxt.payload.data[key]
-      }
-
-      if (nuxt.static.data[key]) {
-        return nuxt.static.data[key]
-      }
-
-      return null
+    getCachedData: (k) => {
+      const nuxtData = useNuxtData<T>(k)
+      return nuxtData?.data?.value || null
     }
   })
 
   if (result.error?.value) {
-    throw createError(result.error?.value)
+    throw createError(result.error.value)
   }
 
   return result
