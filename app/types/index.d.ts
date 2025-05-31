@@ -26,19 +26,27 @@ declare global {
     meta: IFetchResponseMeta
   }
 
-  interface IUser {
+  interface IModel {
+    id: number;
+    created_at: string;
+    updated_at: string;
+  }
+
+  interface IUser extends IModel {
     name: string;
     email: string;
     role_id: number;
-    id: number;
     email_verified_at: string;
-    created_at: string;
-    updated_at: string;
   }
 
   interface IUserShowResponse extends IFetchResponse<IUser> { }
 
   interface IUserIndexResponse extends IPaginatedFetchResponse<IUser> { }
+
+  interface ICollege extends IModel {
+    name: string;
+    deleted_at: string;
+  }
 }
 
 export { }

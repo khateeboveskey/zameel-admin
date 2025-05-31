@@ -106,18 +106,22 @@ const updateRole = async (userId: number, newRoleId: number) => {
     body: { user: userId, role: newRoleId }
   })
 
-  updatingRole.value = updatingRole.value.filter(id => id !== userId)
-
   if (error.value) {
-    console.error(error.value)
+    useToast().add({
+      title: 'حصل خطأ أثناء محاولة تحديث الرتبة',
+      description: error.value.message,
+      color: 'error',
+      icon: 'i-lucide-alert-triangle',
+    })
   } else {
     await refresh()
+    updatingRole.value = updatingRole.value.filter(id => id !== userId);
     const user = updatedRoleUser.value?.data;
     useToast().add({
       title: 'تمت العملية بنجاح',
       description: `تم تحديث رتبة ${user?.name.split(' ').slice(0, 2).join(' ')} ل${roleStore.getRole(Number(user?.role_id))?.name}`,
       color: 'success',
-      icon: 'i-lucide-alert-triangle',
+      icon: 'i-lucide-circle-check',
     })
   }
 }
@@ -163,6 +167,10 @@ const resetFilters = () => {
   currentPage.value = 1
   refreshSearch()
 }
+
+definePageMeta({
+  title: 'المستخدمين'
+})
 </script>
 
 <template>
@@ -257,13 +265,14 @@ const resetFilters = () => {
         <USelectMenu
           v-model="selectedRoles[row.original.id]"
           :items="items"
+          :disabled="row.original.id === 1"
           option-attribute="id"
           :icon="selectedRoles[row.original.id]?.icon"
           :color="selectedRoles[row.original.id]?.color"
           :highlight="true"
           :search-input="false"
           :loading="updatingRole.includes(row.original.id)"
-          class="w-full mt-2"
+          class="w-full mt-2 disabled:opacity-50"
           @update:model-value="val => updateRole(row.original.id, val.id)"
         >
           <template #default>

@@ -72,6 +72,11 @@
       </template>
     </UDashboardSidebar>
     <UDashboardPanel class="p-10 overflow-y-auto">
+      <UPageHeader
+        :title="$route.meta.title"
+        :description="$route.meta.description"
+        class="mb-8"
+      />
       <slot />
     </UDashboardPanel>
   </UDashboardGroup>
@@ -121,11 +126,16 @@ const items: NavigationMenuItem[][] = [
       icon: 'i-lucide-graduation-cap',
     },
     {
+      label: 'سلة المحذوفات',
+      to: '/trash',
+      icon: 'i-lucide-trash',
+      class: 'mt-4',
+    },
+    {
       label: 'الإعدادات',
       to: '/settings',
       icon: 'i-lucide-settings',
       defaultOpen: true,
-      class: 'mt-4',
       children: [
         { label: 'عام' },
         { label: 'الأعضاء' },

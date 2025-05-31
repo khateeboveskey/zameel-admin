@@ -2,8 +2,9 @@ export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
   const config = useRuntimeConfig()
   const user = useUserStore()
 
+  const method = (opts.method || 'GET').toUpperCase()
   const queryString = new URLSearchParams(opts.query || {}).toString()
-  const key = queryString ? `${url}?${queryString}` : url
+  const key = `${method}:${queryString ? `${url}?${queryString}` : url}`
 
   const result = useFetch<T>(url, {
     ...opts,
@@ -18,6 +19,9 @@ export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
     lazy: true,
     getCachedData: (k) => {
       const nuxtData = useNuxtData<T>(k)
+      if (nuxtData?.data?.value) {
+        console.log('Got ' + url + ' from cache.');
+      }
       return nuxtData?.data?.value || null
     }
   })
