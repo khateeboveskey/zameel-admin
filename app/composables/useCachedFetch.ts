@@ -4,7 +4,7 @@ export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
 
   const method = (opts.method || 'GET').toUpperCase()
   const queryString = new URLSearchParams(opts.query || {}).toString()
-  const key = `${method}:${queryString ? `${url}?${queryString}` : url}`
+  const key = `${method}:${queryString ? `${url}?${queryString}` : url}${opts.key ? '-' + opts.key : ''}`
 
   const result = useFetch<T>(url, {
     key,

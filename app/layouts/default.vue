@@ -5,7 +5,7 @@
       side="right"
       collapsible
       resizable
-      :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-72 border border-default rounded-e-xl' }"
+      :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-72 border border-default rounded-e-xl bg-muted/20' }"
     >
       <template #header="{ collapsed }">
         <IconLogo
@@ -129,14 +129,32 @@ const items: NavigationMenuItem[][] = [
     {
       label: 'سلة المحذوفات',
       to: '/trash',
-      icon: 'i-lucide-trash',
       class: 'mt-4',
+      icon: 'i-lucide-trash',
+      type: 'trigger',
+      children: [
+        {
+          label: 'الكليات',
+          to: '/trash/colleges',
+        },
+        {
+          label: 'التخصصات',
+          to: '/trash/majors',
+        },
+        {
+          label: 'الأكاديميين',
+          to: '/trash/academics',
+        },
+        {
+          label: 'المواد',
+          to: '/trash/subjects',
+        }
+      ],
     },
     {
       label: 'الإعدادات',
       to: '/settings',
       icon: 'i-lucide-settings',
-      defaultOpen: true,
       children: [
         { label: 'عام' },
         { label: 'الأعضاء' },
