@@ -1,88 +1,224 @@
 <script setup lang="ts">
+import { ref, reactive, computed, watch } from 'vue'
 import { getPaginationRowModel } from '@tanstack/vue-table'
-import type { TableColumn } from '@nuxt/ui'
+import type { TableColumn, DropdownMenuItem } from '@nuxt/ui'
 
+// ——— Refs & State ———
 const table = useTemplateRef('table')
 const currentPage = ref(1)
-const toast = useToast();
+const toast = useToast()
 
-// Search state
-const searchTerm = ref('');
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
+// Search & Debounce
+const searchTerm = ref('')
+const debouncedSearchTerm = debouncedRef(searchTerm, 1000)
 
-const newCollege = ref({
+// New / Edit Modal State
+const newCollege = reactive({ name: '', pending: false })
+const editCollege = reactive<{ id: number | null; name: string; pending: boolean }>({
+  id: null,
   name: '',
   pending: false
 })
 
-// Fetch colleges
-const { data: colleges, pending, refresh } = await useCachedFetch<IPaginatedFetchResponse<ICollege>>('/colleges', {
-  params: { page: currentPage }
+// Delete State
+const deletedCollegeId = ref<number | null>(null)
+const addModalOpen = ref(false)
+const editModalOpen = ref(false)
+const deleteModalOpen = ref(false)
+
+// ——— Computed Filters ———
+const filters = computed(() => {
+  if (!debouncedSearchTerm.value) return []
+  return [
+    {
+      type: 'and',
+      nested: [
+        {
+          type: 'or',
+          field: 'name',
+          operator: 'like',
+          value: `%${debouncedSearchTerm.value}%`
+        }
+      ]
+    }
+  ]
 })
 
-const addCollege = async (name: string) => {
-  newCollege.value.pending = true;
-  const { error } = await useCachedFetch<ICollege>('/colleges', {
+// ——— Fetch Colleges (Search Endpoint Only) ———
+const {
+  data: collegesResult,
+  pending: loading,
+  refresh
+} = await useCachedFetch<IPaginatedFetchResponse<ICollege>>(
+  '/colleges/search',
+  {
     method: 'POST',
     body: {
-      name: name
+      filters,
+      page: computed(() => currentPage.value)
     }
+  }
+)
+
+// ——— Pagination Setup ———
+const pagination = reactive({
+  pageIndex: 0,
+  // **Make pageSize reactive** so it updates when server-side `per_page` changes
+  pageSize: computed(() => collegesResult.value?.meta?.per_page ?? 15)
+})
+
+// ——— Watchers ———
+// 1. Reset to first page on new search term
+watch(debouncedSearchTerm, () => {
+  currentPage.value = 1
+  pagination.pageIndex = 0
+  refresh()
+})
+
+// 2. Sync pagination.pageIndex → currentPage
+watch(
+  () => pagination.pageIndex,
+  (newIndex) => {
+    currentPage.value = newIndex + 1
+    refresh()
+  }
+)
+
+// ——— CRUD Operations ———
+
+// **Add College**
+const addCollege = async () => {
+  if (!newCollege.name.trim()) return
+
+  newCollege.pending = true
+  const { error } = await useCachedFetch<ICollege>('/colleges', {
+    method: 'POST',
+    body: { name: newCollege.name.trim() }
   })
+
   if (error.value) {
     toast.add({
-      title: 'حصل خطأ أثناء محاولة إضافة كلية',
+      title: 'خطأ عند إضافة كلية',
       description: error.value.message,
       color: 'error',
-      icon: 'i-lucide-alert-triangle',
+      icon: 'i-lucide-alert-triangle'
     })
   } else {
     toast.add({
-      title: 'تمت العملية بنجاح',
-      description: `تمت إضافة ${name} ككلية جديدة.`,
+      title: 'تمت إضافة كلية',
+      description: `تمت إضافة "${newCollege.name.trim()}".`,
       color: 'success',
-      icon: 'i-lucide-circle-check',
+      icon: 'i-lucide-circle-check'
     })
-    await refreshSearch()
-    await refresh()
+    // Reset to page 1 and refresh
+    currentPage.value = 1
+    pagination.pageIndex = 0
+    refresh()
   }
-  addModalOpen.value = false;
-  newCollege.value.pending = false;
+
+  newCollege.name = ''
+  newCollege.pending = false
+  addModalOpen.value = false
 }
 
-// Advanced search
-const filters = computed(() => {
-  const filterArr: any[] = []
+// **Update College (Fixed)**
+const updateCollege = async () => {
+  if (!editCollege.id || !editCollege.name.trim()) return
 
-  if (debouncedSearchTerm.value) {
-    filterArr.push({
-      type: 'or',
-      field: 'name',
-      operator: 'like',
-      value: `%${debouncedSearchTerm.value}%`
+  editCollege.pending = true
+  const { error } = await useCachedFetch<ICollege>(`/colleges/${editCollege.id}`, {
+    method: 'PATCH',
+    body: { name: editCollege.name.trim() }
+  })
+
+  if (error.value) {
+    toast.add({
+      title: 'خطأ عند تعديل كلية',
+      description: error.value.message,
+      color: 'error',
+      icon: 'i-lucide-alert-triangle'
     })
+  } else {
+    toast.add({
+      title: 'تم تعديل كلية',
+      description: `تم تحديث "${editCollege.name.trim()}".`,
+      color: 'success',
+      icon: 'i-lucide-circle-check'
+    })
+    // **Stay on the same page** and refresh
+    refresh()
   }
 
-  return filterArr.length ? [{ type: 'and', nested: filterArr }] : []
-})
+  // **Reset edit state**
+  editCollege.id = null
+  editCollege.name = ''
+  editCollege.pending = false
+  editModalOpen.value = false
+}
 
-const { data: collegesSearchResult, refresh: refreshSearch, pending: searchPending } = await useCachedFetch<IPaginatedFetchResponse<ICollege>>('/colleges/search', {
-  method: 'POST',
-  body: {
-    filters: filters,
-    page: computed(() => currentPage.value)
+// **Delete College (Fixed)**
+const deleteCollege = async () => {
+  if (!deletedCollegeId.value) return
+
+  const { data: deleted, error } = await useCachedFetch<IFetchResponse<ICollege>>(
+    `/colleges/${deletedCollegeId.value}`,
+    { method: 'DELETE' }
+  )
+
+  if (error.value) {
+    toast.add({
+      title: 'خطأ عند حذف كلية',
+      description: error.value.message,
+      color: 'error',
+      icon: 'i-lucide-alert-triangle'
+    })
+  } else {
+    toast.add({
+      title: 'تم حذف كلية',
+      description: `تم حذف "${deleted.value?.data.name}".`,
+      color: 'success',
+      icon: 'i-lucide-circle-check'
+    })
+    // If last item on page was deleted and not on first page, go back one page
+    const remainingOnPage = collegesResult.value?.data.length ?? 0
+    if (remainingOnPage === 1 && currentPage.value > 1) {
+      currentPage.value -= 1
+      pagination.pageIndex = currentPage.value - 1
+    }
+    refresh()
   }
-})
 
-// Watch for filter changes and refresh search
-watch([debouncedSearchTerm], () => {
-  currentPage.value = 1
-  refreshSearch()
-})
+  // **Reset delete state**
+  deletedCollegeId.value = null
+  deleteModalOpen.value = false
+}
 
-// Columns
+// ——— Table Columns & Actions ———
+const actionsList: DropdownMenuItem[] = [
+  {
+    label: 'تعديل',
+    icon: 'i-lucide-pencil',
+    slot: 'edit' as const
+  },
+  {
+    label: 'حذف',
+    icon: 'i-lucide-trash',
+    color: 'error',
+    slot: 'delete' as const
+  }
+]
+
 const columns: TableColumn<ICollege>[] = [
-  { accessorKey: 'id', header: 'المعرف', cell: ({ row }) => row.getValue('id') },
-  { accessorKey: 'name', header: 'اسم الكلية', cell: ({ row }) => row.getValue('name') },
+  {
+    accessorKey: 'id',
+    header: 'المعرف',
+    cell: ({ row }) => row.getValue('id')
+  },
+  {
+    accessorKey: 'name',
+    header: 'اسم الكلية',
+    cell: ({ row }) => row.getValue('name')
+  },
   {
     accessorKey: 'created_at',
     header: 'تاريخ الإنشاء',
@@ -100,43 +236,34 @@ const columns: TableColumn<ICollege>[] = [
   }
 ]
 
-// Pagination state
-const pagination = ref({
-  pageIndex: 0,
-  pageSize: computed(() => {
-    const perPageSearch = collegesSearchResult.value?.meta?.per_page;
-    const perPageColleges = colleges.value?.meta?.per_page;
-    return (typeof perPageSearch === 'number' && perPageSearch > 0)
-      ? perPageSearch
-      : (typeof perPageColleges === 'number' && perPageColleges > 0)
-        ? perPageColleges
-        : 15;
-  }).value
-})
+// ——— Helper to Open Modals ———
+import { nextTick } from 'vue'
 
-// Watch for pagination changes and update currentPage
-watch(() => pagination.value.pageIndex, (newPageIndex) => {
-  currentPage.value = newPageIndex + 1
-  refreshSearch()
-})
-
-const resetFilters = () => {
-  searchTerm.value = ''
-  currentPage.value = 1
-  refreshSearch()
+function openEditModal(college: ICollege) {
+  editModalOpen.value = false
+  nextTick(() => {
+    editCollege.id = college.id
+    editCollege.name = college.name
+    editModalOpen.value = true
+  })
 }
 
-const addModalOpen = ref(false);
+function openDeleteModal(id: number) {
+  deleteModalOpen.value = false
+  nextTick(() => {
+    deletedCollegeId.value = id
+    deleteModalOpen.value = true
+  })
+}
 
-definePageMeta({
-  title: 'الكليات'
-})
+// ——— Page Meta ———
+definePageMeta({ title: 'الكليات' })
 </script>
 
 <template>
   <div class="space-y-4 pb-4">
-    <!-- Search -->
-    <div class="flex flex-nowrap text-nowrap gap-4 items-center">
+    <!-- 📌 Search & Controls -->
+    <div class="flex gap-4 items-center">
       <UInput
         v-model="searchTerm"
         placeholder="بحث باسم الكلية"
@@ -158,85 +285,47 @@ definePageMeta({
           />
         </template>
       </UInput>
+
       <UButton
         icon="i-lucide-rotate-ccw"
         color="neutral"
+        class="text-nowrap"
         variant="outline"
-        @click="resetFilters"
+        @click="() => { searchTerm = ''; currentPage = 1; pagination.pageIndex = 0; refresh() }"
       >
         إعادة تعيين الفلاتر
       </UButton>
-      <UModal
-        v-model:open="addModalOpen"
-        title="إضافة كلية جديدة"
-        description="قم بملء بيانات عملية إضافة كلية جديدة."
+
+      <UButton
+        icon="i-lucide-plus"
+        color="primary"
+        class="text-nowrap"
+        @click="addModalOpen = true"
       >
-        <UButton
-          label="إضافة كلية"
-          icon="i-lucide-plus"
-        />
-        <template #body>
-          <UFormField
-            label="الاسم"
-            name="name"
-          >
-            <UInput
-              v-model="newCollege.name"
-              class="w-full"
-            />
-          </UFormField>
-          <div class="flex justify-end gap-2 mt-4">
-            <UButton
-              label="إلغاء"
-              color="neutral"
-              variant="outline"
-              @click="addModalOpen = false"
-            />
-            <UButton
-              label="حفظ"
-              icon="i-lucide-save"
-              color="primary"
-              type="submit"
-              :loading="newCollege.pending"
-              @click="addCollege(newCollege.name)"
-            />
-          </div>
-        </template>
-      </UModal>
+        إضافة كلية
+      </UButton>
     </div>
 
+    <!-- 🗃️ Data Table -->
     <UTable
       ref="table"
       empty="لا يوجد بيانات"
       v-model:pagination="pagination"
       :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
       :sticky="true"
-      :loading="pending || searchPending"
+      :loading="loading"
       :columns="columns as any"
-      :data="collegesSearchResult?.data"
+      :data="collegesResult?.data"
       :ui="{
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
         tbody: '[&>tr]:last:[&>td]:border-b-0',
-        th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
-        td: 'border-b border-default'
+        th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right'
       }"
     >
       <template #actions-cell="{ row }">
         <UDropdownMenu
-          :items="[
-            [
-              {
-                label: 'تعديل',
-                icon: 'i-lucide-pencil',
-              },
-              {
-                label: 'حذف',
-                icon: 'i-lucide-trash',
-                color: 'error'
-              }
-            ]
-          ]"
+          :items="actionsList"
           :popper="{ placement: 'bottom-start' }"
         >
           <UButton
@@ -244,24 +333,124 @@ definePageMeta({
             color="neutral"
             variant="ghost"
           />
+          <template #edit-label>
+            <div @click="openEditModal(row.original)">تعديل</div>
+          </template>
+          <template #delete-label>
+            <div @click="openDeleteModal(row.original.id)">حذف</div>
+          </template>
         </UDropdownMenu>
       </template>
     </UTable>
 
+    <!-- 🔢 Pagination Controls -->
     <div class="flex justify-center border-t border-default pt-4">
       <UPagination
         :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
         :items-per-page="table?.tableApi.getState().pagination.pageSize"
-        :total="collegesSearchResult?.meta?.total ?? colleges?.meta?.total"
-        @update:page="p => currentPage = p"
+        :total="collegesResult?.meta?.total ?? 0"
+        @update:page="(p) => { currentPage = p; pagination.pageIndex = p - 1 }"
         :ui="{
           last: 'rotate-180 aspect-square h-10 grid place-items-center',
           next: 'rotate-180 aspect-square h-10 grid place-items-center',
           first: 'rotate-180 aspect-square h-10 grid place-items-center',
           prev: 'rotate-180 aspect-square h-10 grid place-items-center',
-          item: 'aspect-square h-10 grid place-items-center',
+          item: 'aspect-square h-10 grid place-items-center'
         }"
       />
     </div>
+
+    <!-- ➕ Add Modal -->
+    <UModal
+      v-model:open="addModalOpen"
+      title="إضافة كلية جديدة"
+      description="أدخل اسم الكلية الجديدة"
+    >
+      <template #body>
+        <UFormField
+          label="الاسم"
+          name="name"
+        >
+          <UInput
+            v-model="newCollege.name"
+            class="w-full"
+          />
+        </UFormField>
+        <div class="flex justify-end gap-2 mt-4">
+          <UButton
+            label="إلغاء"
+            color="neutral"
+            variant="outline"
+            @click="addModalOpen = false"
+          />
+          <UButton
+            label="حفظ"
+            icon="i-lucide-save"
+            color="primary"
+            :loading="newCollege.pending"
+            @click="addCollege"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- ✏️ Edit Modal -->
+    <UModal
+      v-model:open="editModalOpen"
+      title="تعديل الكلية"
+      description="قم بتعديل بيانات الكلية"
+    >
+      <template #body>
+        <UFormField
+          label="الاسم"
+          name="name"
+        >
+          <UInput
+            v-model="editCollege.name"
+            class="w-full"
+          />
+        </UFormField>
+        <div class="flex justify-end gap-2 mt-4">
+          <UButton
+            label="إلغاء"
+            color="neutral"
+            variant="outline"
+            @click="editModalOpen = false"
+          />
+          <UButton
+            label="حفظ"
+            icon="i-lucide-save"
+            color="primary"
+            :loading="editCollege.pending"
+            @click="updateCollege"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- 🗑️ Delete Modal -->
+    <UModal
+      v-model:open="deleteModalOpen"
+      title="حذف الكلية"
+      description="هل أنت متأكد من حذف هذه الكلية؟"
+      :ui="{ header: 'border-b-0' }"
+    >
+      <template #body>
+        <div class="flex justify-end gap-2 mt-4">
+          <UButton
+            label="إلغاء"
+            color="neutral"
+            variant="outline"
+            @click="deleteModalOpen = false"
+          />
+          <UButton
+            label="حذف"
+            icon="i-lucide-trash"
+            color="error"
+            @click="deleteCollege"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

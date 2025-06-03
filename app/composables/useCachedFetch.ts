@@ -7,8 +7,8 @@ export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
   const key = `${method}:${queryString ? `${url}?${queryString}` : url}`
 
   const result = useFetch<T>(url, {
-    ...opts,
     key,
+    timeout: 5000,
     baseURL: `${config.public.baseApiUrl}/${config.public.apiPrefix}`,
     headers: {
       'Content-Type': 'application/json',
@@ -23,7 +23,8 @@ export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
         console.log('Got ' + url + ' from cache.');
       }
       return nuxtData?.data?.value || null
-    }
+    },
+    ...opts,
   })
 
   if (result.error?.value) {

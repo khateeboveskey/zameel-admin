@@ -73,8 +73,9 @@
     </UDashboardSidebar>
     <UDashboardPanel class="p-10 overflow-y-auto">
       <UPageHeader
-        :title="$route.meta.title"
-        :description="$route.meta.description"
+        v-if="$route.meta.title"
+        :title="String($route.meta.title || '')"
+        :description="String($route.meta.description || '')"
         class="mb-8"
       />
       <slot />
