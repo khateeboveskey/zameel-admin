@@ -1,38 +1,92 @@
 <template>
   <UDashboardGroup>
-    <UDashboardSidebar :max-size="5" side="right" collapsible resizable :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-60 border border-default rounded-e-xl' }">
+    <UDashboardSidebar
+      :max-size="5"
+      side="right"
+      collapsible
+      resizable
+      :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-72 border border-default rounded-e-xl' }"
+    >
       <template #header="{ collapsed }">
-        <IconLogo v-if="!collapsed" class="text-9xl" />
+        <IconLogo
+          v-if="!collapsed"
+          class="text-9xl"
+        />
         <!-- <UDashboardSidebarCollapse variant="subtle" class="rotate-180" size="sm" /> -->
       </template>
 
       <template #default="{ collapsed }">
-        <UButton :label="collapsed ? undefined : 'بحث...'" icon="i-lucide-search" color="neutral" variant="outline" block :square="collapsed">
-          <template v-if="!collapsed" #trailing>
+        <UButton
+          :label="collapsed ? undefined : 'بحث...'"
+          icon="i-lucide-search"
+          color="neutral"
+          variant="outline"
+          block
+          :square="collapsed"
+        >
+          <template
+            v-if="!collapsed"
+            #trailing
+          >
             <div class="flex items-center gap-0.5 ms-auto">
-              <UKbd value="meta" variant="subtle" />
-              <UKbd value="K" variant="subtle" />
+              <UKbd
+                value="meta"
+                variant="subtle"
+              />
+              <UKbd
+                value="K"
+                variant="subtle"
+              />
             </div>
           </template>
         </UButton>
 
-        <UNavigationMenu :external-icon="false" :collapsed="collapsed" :items="items[0]" orientation="vertical" />
-        <UNavigationMenu :collapsed="collapsed" :items="items[1]" orientation="vertical" class="mt-auto" />
+        <UNavigationMenu
+          :external-icon="false"
+          :collapsed="collapsed"
+          :items="items[0]"
+          orientation="vertical"
+        />
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="items[1]"
+          orientation="vertical"
+          class="mt-auto"
+        />
       </template>
 
       <template #footer="{ collapsed }">
-        <UButton :avatar="{
-          class: 'me-2',
-          src: 'https://github.com/khateeboveskey.png'
-        }" :label="collapsed ? undefined : 'عبدالرحمن الخطيب'" color="neutral" variant="ghost" class="w-full" :block="collapsed" />
+        <UUser
+          :name="auth.user.name"
+          :description="auth.user.email"
+          :avatar="{
+            src: 'https://i.pravatar.cc/150?u=john-doe',
+            icon: 'i-lucide-image'
+          }"
+          :ui="{
+            wrapper: 'mt-2',
+            avatar: 'me-1',
+            name: 'leading-4!'
+          }"
+        />
       </template>
     </UDashboardSidebar>
-    <slot />
+    <UDashboardPanel class="p-10 overflow-y-auto">
+      <UPageHeader
+        v-if="$route.meta.title"
+        :title="String($route.meta.title || '')"
+        :description="String($route.meta.description || '')"
+        class="mb-8"
+      />
+      <slot />
+    </UDashboardPanel>
   </UDashboardGroup>
 </template>
 
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+
+const auth = useUserStore();
 
 const items: NavigationMenuItem[][] = [
   [
@@ -73,11 +127,16 @@ const items: NavigationMenuItem[][] = [
       icon: 'i-lucide-graduation-cap',
     },
     {
+      label: 'سلة المحذوفات',
+      to: '/trash',
+      icon: 'i-lucide-trash',
+      class: 'mt-4',
+    },
+    {
       label: 'الإعدادات',
       to: '/settings',
       icon: 'i-lucide-settings',
       defaultOpen: true,
-      class: 'mt-4',
       children: [
         { label: 'عام' },
         { label: 'الأعضاء' },

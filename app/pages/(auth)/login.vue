@@ -2,7 +2,10 @@
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 
-const toast = useToast()
+const toast = useToast();
+const pending = ref(false);
+const { login, user, isAuthenticated } = useAuth();
+const route = useRoute();
 
 const fields = [{
   name: 'email',
@@ -25,18 +28,26 @@ const fields = [{
 const schema = z.object({
   email: z.string({ required_error: 'هذا الحقل مطلوب' }).email('بريد إلكتروني غير صالح'),
   password: z.string({ required_error: 'هذا الحقل مطلوب' }).min(8, 'يجب أن يكون طول كلمة المرور 8 أحرف على الأقل')
+    .max(64, 'يجب ألا يتجاوز طول كلمة المرور 64 حرفًا'),
+  remember: z.boolean().optional(),
 })
 
 type Schema = z.output<typeof schema>
 
-function onSubmit(payload: FormSubmitEvent<Schema>) {
-  console.log('Submitted', payload)
-  toast.add({
-    title: 'تم تسجيل الدخول بنجاح',
-    description: 'مرحبًا بك في زميل!',
-    color: 'success',
-    icon: 'i-lucide-check-circle',
-  })
+async function onSubmit(payload: FormSubmitEvent<Schema>) {
+  pending.value = true;
+
+  const result = await login(
+    payload.data.email,
+    payload.data.password,
+    Boolean(payload.data.remember)
+  );
+
+  if (!result.error) {
+    console.log(user.value, isAuthenticated.value);
+  }
+
+  pending.value = false;
 }
 
 definePageMeta({
@@ -45,7 +56,7 @@ definePageMeta({
 </script>
 
 <template>
-  <div class="h-screen flex flex-col items-center justify-center gap-4 p-4">
+  <div class="h-screen flex flex-col items-center justify-center gap-4 p-4 bg-muted">
     <UPageCard class="w-full max-w-md">
       <UAuthForm
         :ui="{
@@ -56,6 +67,10 @@ definePageMeta({
         description="قم بتسجيل الدخول كمشرف في زميل."
         icon="i-lucide-user"
         :fields="fields"
+        :submit="{
+          label: 'تسجيل الدخول',
+          loading: pending
+        }"
         @submit="onSubmit"
       >
         <template #leading>

@@ -3,7 +3,10 @@ import { ar } from '@nuxt/ui-pro/locale'
 </script>
 
 <template>
-  <UApp :locale="ar">
-    <NuxtPage />
-  </UApp>
+  <NuxtLayout>
+    <NuxtLoadingIndicator color="var(--color-indigo-500)" />
+    <UApp :locale="ar">
+      <NuxtPage />
+    </UApp>
+  </NuxtLayout>
 </template>
