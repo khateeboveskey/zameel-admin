@@ -1,5 +1,3 @@
 <template>
-  <div>
-    Trash
-  </div>
+  <div>Trash</div>
 </template>

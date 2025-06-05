@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "@nuxt/ui-pro";
+@import 'tailwindcss';
+@import '@nuxt/ui-pro';
 
 @theme {
   --font-sans: 'Alexandria', sans-serif;
@@ -7,9 +7,20 @@
 
 * {
   direction: rtl;
-  @apply leading-7
+  @apply leading-7;
 }
 
-button, a, [role="button"], input[type="button"], input[type="submit"], input[type="reset"], label, select, .summary, [tabindex]:not([tabindex="-1"]), [onclick], [aria-haspopup="true"] {
+button,
+a,
+[role='button'],
+input[type='button'],
+input[type='submit'],
+input[type='reset'],
+label,
+select,
+.summary,
+[tabindex]:not([tabindex='-1']),
+[onclick],
+[aria-haspopup='true'] {
   @apply cursor-pointer;
 }

@@ -5,13 +5,14 @@
       side="right"
       collapsible
       resizable
-      :ui="{ footer: 'border-t border-default', header: 'h-28 pt-5 flex items-center justify-center', root: 'w-72 border border-default rounded-e-xl bg-muted/20' }"
+      :ui="{
+        footer: 'border-t border-default',
+        header: 'h-28 pt-5 flex items-center justify-center',
+        root: 'w-72 border border-default rounded-e-xl bg-muted/20',
+      }"
     >
       <template #header="{ collapsed }">
-        <IconLogo
-          v-if="!collapsed"
-          class="text-9xl"
-        />
+        <IconLogo v-if="!collapsed" class="text-9xl" />
         <!-- <UDashboardSidebarCollapse variant="subtle" class="rotate-180" size="sm" /> -->
       </template>
 
@@ -24,19 +25,10 @@
           block
           :square="collapsed"
         >
-          <template
-            v-if="!collapsed"
-            #trailing
-          >
+          <template v-if="!collapsed" #trailing>
             <div class="flex items-center gap-0.5 ms-auto">
-              <UKbd
-                value="meta"
-                variant="subtle"
-              />
-              <UKbd
-                value="K"
-                variant="subtle"
-              />
+              <UKbd value="meta" variant="subtle" />
+              <UKbd value="K" variant="subtle" />
             </div>
           </template>
         </UButton>
@@ -61,12 +53,12 @@
           :description="auth.user.email"
           :avatar="{
             src: 'https://i.pravatar.cc/150?u=john-doe',
-            icon: 'i-lucide-image'
+            icon: 'i-lucide-image',
           }"
           :ui="{
             wrapper: 'mt-2',
             avatar: 'me-1',
-            name: 'leading-4!'
+            name: 'leading-4!',
           }"
         />
       </template>
@@ -86,7 +78,7 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-const auth = useUserStore();
+const auth = useUserStore()
 
 const items: NavigationMenuItem[][] = [
   [
@@ -94,7 +86,7 @@ const items: NavigationMenuItem[][] = [
       label: 'الرئيسية',
       icon: 'i-lucide-house',
       to: '/',
-      class: 'mb-4'
+      class: 'mb-4',
     },
     {
       label: 'المستخدمون',
@@ -148,7 +140,7 @@ const items: NavigationMenuItem[][] = [
         {
           label: 'المواد',
           to: '/trash/subjects',
-        }
+        },
       ],
     },
     {
@@ -169,8 +161,8 @@ const items: NavigationMenuItem[][] = [
       to: 'https://github.com/nuxt-ui-pro/dashboard',
       target: '_blank',
       ui: {
-        linkLabelExternalIcon: '-rotate-90 ms-2'
-      }
+        linkLabelExternalIcon: '-rotate-90 ms-2',
+      },
     },
     {
       label: 'المساعدة والدعم',
@@ -178,9 +170,9 @@ const items: NavigationMenuItem[][] = [
       to: 'https://github.com/nuxt/ui-pro',
       target: '_blank',
       ui: {
-        linkLabelExternalIcon: '-rotate-90 ms-2'
-      }
+        linkLabelExternalIcon: '-rotate-90 ms-2',
+      },
     },
   ],
-];
+]
 </script>

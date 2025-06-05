@@ -8,19 +8,19 @@ export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
 
   const result = useFetch<T>(url, {
     key,
-    timeout: 5000,
+    timeout: 10000,
     baseURL: `${config.public.baseApiUrl}/${config.public.apiPrefix}`,
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${user.token || ''}`,
-      ...(opts.headers || {})
+      Accept: 'application/json',
+      Authorization: `Bearer ${user.token || ''}`,
+      ...(opts.headers || {}),
     },
     lazy: true,
-    getCachedData: (k) => {
+    getCachedData: k => {
       const nuxtData = useNuxtData<T>(k)
       if (nuxtData?.data?.value) {
-        console.log('Got ' + url + ' from cache.');
+        console.log('Got ' + url + ' from cache.')
       }
       return nuxtData?.data?.value || null
     },

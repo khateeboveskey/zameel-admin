@@ -14,10 +14,14 @@ const debouncedSearchTerm = debouncedRef(searchTerm, 1000)
 
 // New / Edit Modal State
 const newCollege = reactive({ name: '', pending: false })
-const editCollege = reactive<{ id: number | null; name: string; pending: boolean }>({
+const editCollege = reactive<{
+  id: number | null
+  name: string
+  pending: boolean
+}>({
   id: null,
   name: '',
-  pending: false
+  pending: false,
 })
 
 // Delete State
@@ -37,10 +41,10 @@ const filters = computed(() => {
           type: 'or',
           field: 'name',
           operator: 'like',
-          value: `%${debouncedSearchTerm.value}%`
-        }
-      ]
-    }
+          value: `%${debouncedSearchTerm.value}%`,
+        },
+      ],
+    },
   ]
 })
 
@@ -48,15 +52,15 @@ const filters = computed(() => {
 const {
   data: collegesResult,
   pending: loading,
-  refresh
+  refresh,
 } = await useCachedFetch<IPaginatedFetchResponse<ICollege>>(
   '/colleges/search',
   {
     method: 'POST',
     body: {
       filters,
-      page: computed(() => currentPage.value)
-    }
+      page: computed(() => currentPage.value),
+    },
   }
 )
 
@@ -64,7 +68,7 @@ const {
 const pagination = reactive({
   pageIndex: 0,
   // **Make pageSize reactive** so it updates when server-side `per_page` changes
-  pageSize: computed(() => collegesResult.value?.meta?.per_page ?? 15)
+  pageSize: computed(() => collegesResult.value?.meta?.per_page ?? 15),
 })
 
 // ——— Watchers ———
@@ -78,7 +82,7 @@ watch(debouncedSearchTerm, () => {
 // 2. Sync pagination.pageIndex → currentPage
 watch(
   () => pagination.pageIndex,
-  (newIndex) => {
+  newIndex => {
     currentPage.value = newIndex + 1
     refresh()
   }
@@ -93,7 +97,7 @@ const addCollege = async () => {
   newCollege.pending = true
   const { error } = await useCachedFetch<ICollege>('/colleges', {
     method: 'POST',
-    body: { name: newCollege.name.trim() }
+    body: { name: newCollege.name.trim() },
   })
 
   if (error.value) {
@@ -101,14 +105,14 @@ const addCollege = async () => {
       title: 'خطأ عند إضافة كلية',
       description: error.value.message,
       color: 'error',
-      icon: 'i-lucide-alert-triangle'
+      icon: 'i-lucide-alert-triangle',
     })
   } else {
     toast.add({
       title: 'تمت إضافة كلية',
       description: `تمت إضافة "${newCollege.name.trim()}".`,
       color: 'success',
-      icon: 'i-lucide-circle-check'
+      icon: 'i-lucide-circle-check',
     })
     // Reset to page 1 and refresh
     currentPage.value = 1
@@ -126,24 +130,27 @@ const updateCollege = async () => {
   if (!editCollege.id || !editCollege.name.trim()) return
 
   editCollege.pending = true
-  const { error } = await useCachedFetch<ICollege>(`/colleges/${editCollege.id}`, {
-    method: 'PATCH',
-    body: { name: editCollege.name.trim() }
-  })
+  const { error } = await useCachedFetch<ICollege>(
+    `/colleges/${editCollege.id}`,
+    {
+      method: 'PATCH',
+      body: { name: editCollege.name.trim() },
+    }
+  )
 
   if (error.value) {
     toast.add({
       title: 'خطأ عند تعديل كلية',
       description: error.value.message,
       color: 'error',
-      icon: 'i-lucide-alert-triangle'
+      icon: 'i-lucide-alert-triangle',
     })
   } else {
     toast.add({
       title: 'تم تعديل كلية',
       description: `تم تحديث "${editCollege.name.trim()}".`,
       color: 'success',
-      icon: 'i-lucide-circle-check'
+      icon: 'i-lucide-circle-check',
     })
     // **Stay on the same page** and refresh
     refresh()
@@ -160,24 +167,23 @@ const updateCollege = async () => {
 const deleteCollege = async () => {
   if (!deletedCollegeId.value) return
 
-  const { data: deleted, error } = await useCachedFetch<IFetchResponse<ICollege>>(
-    `/colleges/${deletedCollegeId.value}`,
-    { method: 'DELETE' }
-  )
+  const { data: deleted, error } = await useCachedFetch<
+    IFetchResponse<ICollege>
+  >(`/colleges/${deletedCollegeId.value}`, { method: 'DELETE' })
 
   if (error.value) {
     toast.add({
       title: 'خطأ عند حذف كلية',
       description: error.value.message,
       color: 'error',
-      icon: 'i-lucide-alert-triangle'
+      icon: 'i-lucide-alert-triangle',
     })
   } else {
     toast.add({
       title: 'تم حذف كلية',
       description: `تم حذف "${deleted.value?.data.name}".`,
       color: 'success',
-      icon: 'i-lucide-circle-check'
+      icon: 'i-lucide-circle-check',
     })
     // If last item on page was deleted and not on first page, go back one page
     const remainingOnPage = collegesResult.value?.data.length ?? 0
@@ -198,42 +204,42 @@ const actionsList: DropdownMenuItem[] = [
   {
     label: 'تعديل',
     icon: 'i-lucide-pencil',
-    slot: 'edit' as const
+    slot: 'edit' as const,
   },
   {
     label: 'حذف',
     icon: 'i-lucide-trash',
     color: 'error',
-    slot: 'delete' as const
-  }
+    slot: 'delete' as const,
+  },
 ]
 
 const columns: TableColumn<ICollege>[] = [
   {
     accessorKey: 'id',
     header: 'المعرف',
-    cell: ({ row }) => row.getValue('id')
+    cell: ({ row }) => row.getValue('id'),
   },
   {
     accessorKey: 'name',
     header: 'اسم الكلية',
-    cell: ({ row }) => row.getValue('name')
+    cell: ({ row }) => row.getValue('name'),
   },
   {
     accessorKey: 'created_at',
     header: 'تاريخ الإنشاء',
-    cell: ({ row }) => toArabicDate(row.getValue('created_at'))
+    cell: ({ row }) => toArabicDate(row.getValue('created_at')),
   },
   {
     accessorKey: 'updated_at',
     header: 'آخر تعديل',
-    cell: ({ row }) => toArabicDate(row.getValue('updated_at'))
+    cell: ({ row }) => toArabicDate(row.getValue('updated_at')),
   },
   {
     accessorKey: 'actions',
     header: 'الإجراءات',
-    cell: () => null
-  }
+    cell: () => null,
+  },
 ]
 
 // ——— Helper to Open Modals ———
@@ -271,10 +277,7 @@ definePageMeta({ title: 'الكليات' })
         class="w-full"
         clearable
       >
-        <template
-          v-if="searchTerm.length > 0"
-          #trailing
-        >
+        <template v-if="searchTerm.length > 0" #trailing>
           <UButton
             color="neutral"
             variant="link"
@@ -291,7 +294,14 @@ definePageMeta({ title: 'الكليات' })
         color="neutral"
         class="text-nowrap"
         variant="outline"
-        @click="() => { searchTerm = ''; currentPage = 1; pagination.pageIndex = 0; refresh() }"
+        @click="
+          () => {
+            searchTerm = ''
+            currentPage = 1
+            pagination.pageIndex = 0
+            refresh()
+          }
+        "
       >
         إعادة تعيين الفلاتر
       </UButton>
@@ -320,7 +330,7 @@ definePageMeta({ title: 'الكليات' })
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
         tbody: '[&>tr]:last:[&>td]:border-b-0',
-        th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right'
+        th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
       }"
     >
       <template #actions-cell="{ row }">
@@ -346,16 +356,23 @@ definePageMeta({ title: 'الكليات' })
     <!-- 🔢 Pagination Controls -->
     <div class="flex justify-center border-t border-default pt-4">
       <UPagination
-        :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
+        :default-page="
+          (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
+        "
         :items-per-page="table?.tableApi.getState().pagination.pageSize"
         :total="collegesResult?.meta?.total ?? 0"
-        @update:page="(p) => { currentPage = p; pagination.pageIndex = p - 1 }"
+        @update:page="
+          p => {
+            currentPage = p
+            pagination.pageIndex = p - 1
+          }
+        "
         :ui="{
           last: 'rotate-180 aspect-square h-10 grid place-items-center',
           next: 'rotate-180 aspect-square h-10 grid place-items-center',
           first: 'rotate-180 aspect-square h-10 grid place-items-center',
           prev: 'rotate-180 aspect-square h-10 grid place-items-center',
-          item: 'aspect-square h-10 grid place-items-center'
+          item: 'aspect-square h-10 grid place-items-center',
         }"
       />
     </div>
@@ -367,14 +384,8 @@ definePageMeta({ title: 'الكليات' })
       description="أدخل اسم الكلية الجديدة"
     >
       <template #body>
-        <UFormField
-          label="الاسم"
-          name="name"
-        >
-          <UInput
-            v-model="newCollege.name"
-            class="w-full"
-          />
+        <UFormField label="الاسم" name="name">
+          <UInput v-model="newCollege.name" class="w-full" />
         </UFormField>
         <div class="flex justify-end gap-2 mt-4">
           <UButton
@@ -401,14 +412,8 @@ definePageMeta({ title: 'الكليات' })
       description="قم بتعديل بيانات الكلية"
     >
       <template #body>
-        <UFormField
-          label="الاسم"
-          name="name"
-        >
-          <UInput
-            v-model="editCollege.name"
-            class="w-full"
-          />
+        <UFormField label="الاسم" name="name">
+          <UInput v-model="editCollege.name" class="w-full" />
         </UFormField>
         <div class="flex justify-end gap-2 mt-4">
           <UButton

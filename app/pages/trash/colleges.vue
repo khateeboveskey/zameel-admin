@@ -11,29 +11,29 @@ const toast = useToast()
 // Search & Debounce
 const searchTerm = ref('')
 const debouncedSearchTerm = debouncedRef(searchTerm, 1000)
-const restorePending = reactive<{ [key: number]: boolean }>({});
+const restorePending = reactive<{ [key: number]: boolean }>({})
 
 // ——— Fetch Colleges (Search Endpoint Only) ———
 const {
   data: collegesResult,
   pending: loading,
-  refresh
+  refresh,
 } = await useCachedFetch<IPaginatedFetchResponse<ICollege>>(
   '/colleges/search',
   {
     method: 'POST',
     params: {
-      with_trashed: true,
-      page: computed(() => currentPage.value)
+      only_trashed: true,
+      page: computed(() => currentPage.value),
     },
-    key: 'trashed'
+    key: 'trashed',
   }
 )
 
 // ——— Pagination Setup ———
 const pagination = reactive({
   pageIndex: 0,
-  pageSize: computed(() => collegesResult.value?.meta?.per_page ?? 15)
+  pageSize: computed(() => collegesResult.value?.meta?.per_page ?? 15),
 })
 
 // ——— Watchers ———
@@ -45,7 +45,7 @@ watch(debouncedSearchTerm, () => {
 
 watch(
   () => pagination.pageIndex,
-  (newIndex) => {
+  newIndex => {
     currentPage.value = newIndex + 1
     refresh()
   }
@@ -55,58 +55,57 @@ watch(
 const restoreCollege = async (id: number) => {
   if (!id) return
 
-  restorePending[id] = true;
+  restorePending[id] = true
 
-  const { error } = await useCachedFetch<ICollege>(
-    `/colleges/${id}/restore`,
-    { method: 'POST' }
-  )
+  const { error } = await useCachedFetch<ICollege>(`/colleges/${id}/restore`, {
+    method: 'POST',
+  })
 
   if (error.value) {
     toast.add({
       title: 'خطأ عند الاستعادة',
       description: error.value.message,
       color: 'error',
-      icon: 'i-lucide-alert-triangle'
+      icon: 'i-lucide-alert-triangle',
     })
   } else {
     toast.add({
       title: 'تمت الاستعادة',
       description: `تمت استعادة الكلية.`,
       color: 'success',
-      icon: 'i-lucide-circle-check'
+      icon: 'i-lucide-circle-check',
     })
     refresh()
   }
-  restorePending[id] = false;
+  restorePending[id] = false
 }
 
 const columns: TableColumn<ICollege>[] = [
   {
     accessorKey: 'id',
     header: 'المعرف',
-    cell: ({ row }) => row.getValue('id')
+    cell: ({ row }) => row.getValue('id'),
   },
   {
     accessorKey: 'name',
     header: 'اسم الكلية',
-    cell: ({ row }) => row.getValue('name')
+    cell: ({ row }) => row.getValue('name'),
   },
   {
     accessorKey: 'created_at',
     header: 'تاريخ الإنشاء',
-    cell: ({ row }) => toArabicDate(row.getValue('created_at'))
+    cell: ({ row }) => toArabicDate(row.getValue('created_at')),
   },
   {
     accessorKey: 'updated_at',
     header: 'آخر تعديل',
-    cell: ({ row }) => toArabicDate(row.getValue('updated_at'))
+    cell: ({ row }) => toArabicDate(row.getValue('updated_at')),
   },
   {
     accessorKey: 'actions',
     header: 'الإجراءات',
-    cell: () => null
-  }
+    cell: () => null,
+  },
 ]
 </script>
 
@@ -121,10 +120,7 @@ const columns: TableColumn<ICollege>[] = [
         class="w-full"
         clearable
       >
-        <template
-          v-if="searchTerm.length > 0"
-          #trailing
-        >
+        <template v-if="searchTerm.length > 0" #trailing>
           <UButton
             color="neutral"
             variant="link"
@@ -141,7 +137,14 @@ const columns: TableColumn<ICollege>[] = [
         color="neutral"
         class="text-nowrap"
         variant="outline"
-        @click="() => { searchTerm = ''; currentPage = 1; pagination.pageIndex = 0; refresh() }"
+        @click="
+          () => {
+            searchTerm = ''
+            currentPage = 1
+            pagination.pageIndex = 0
+            refresh()
+          }
+        "
       >
         إعادة تعيين الفلاتر
       </UButton>
@@ -161,7 +164,7 @@ const columns: TableColumn<ICollege>[] = [
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
         tbody: '[&>tr]:last:[&>td]:border-b-0',
-        th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right'
+        th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
       }"
     >
       <template #actions-cell="{ row }">
@@ -179,16 +182,23 @@ const columns: TableColumn<ICollege>[] = [
     <!-- 🔢 Pagination Controls -->
     <div class="flex justify-center border-t border-default pt-4">
       <UPagination
-        :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
+        :default-page="
+          (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
+        "
         :items-per-page="table?.tableApi.getState().pagination.pageSize"
         :total="collegesResult?.meta?.total ?? 0"
-        @update:page="(p) => { currentPage = p; pagination.pageIndex = p - 1 }"
+        @update:page="
+          p => {
+            currentPage = p
+            pagination.pageIndex = p - 1
+          }
+        "
         :ui="{
           last: 'rotate-180 aspect-square h-10 grid place-items-center',
           next: 'rotate-180 aspect-square h-10 grid place-items-center',
           first: 'rotate-180 aspect-square h-10 grid place-items-center',
           prev: 'rotate-180 aspect-square h-10 grid place-items-center',
-          item: 'aspect-square h-10 grid place-items-center'
+          item: 'aspect-square h-10 grid place-items-center',
         }"
       />
     </div>

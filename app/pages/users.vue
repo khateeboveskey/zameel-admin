@@ -9,14 +9,18 @@ const currentPage = ref(1)
 const updatingRole = ref<number[]>([])
 
 // Search state
-const searchTerm = ref('');
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
+const searchTerm = ref('')
+const debouncedSearchTerm = debouncedRef(searchTerm, 1000)
 const selectedRolesFilter = ref<any[]>([])
 const verifiedOnly = ref(false)
 
 // Fetch users
-const { data: users, pending, refresh } = await useCachedFetch<IUserIndexResponse>('/users', {
-  params: { page: currentPage }
+const {
+  data: users,
+  pending,
+  refresh,
+} = await useCachedFetch<IUserIndexResponse>('/users', {
+  params: { page: currentPage },
 })
 
 // Advanced search
@@ -28,13 +32,13 @@ const filters = computed(() => {
       type: 'or',
       field: 'name',
       operator: 'like',
-      value: `%${debouncedSearchTerm.value}%`
+      value: `%${debouncedSearchTerm.value}%`,
     })
     filterArr.push({
       type: 'or',
       field: 'email',
       operator: 'like',
-      value: `%${debouncedSearchTerm.value}%`
+      value: `%${debouncedSearchTerm.value}%`,
     })
   }
 
@@ -43,7 +47,7 @@ const filters = computed(() => {
       type: 'and',
       field: 'role_id',
       operator: 'in',
-      value: selectedRolesFilter.value.map(role => role.id)
+      value: selectedRolesFilter.value.map(role => role.id),
     })
   }
 
@@ -52,19 +56,23 @@ const filters = computed(() => {
       type: 'and',
       field: 'email_verified_at',
       operator: '!=',
-      value: null
+      value: null,
     })
   }
 
   return filterArr.length ? [{ type: 'and', nested: filterArr }] : []
 })
 
-const { data: usersSearchResult, refresh: refreshSearch, pending: searchPending } = await useCachedFetch<IUserIndexResponse>('/users/search', {
+const {
+  data: usersSearchResult,
+  refresh: refreshSearch,
+  pending: searchPending,
+} = await useCachedFetch<IUserIndexResponse>('/users/search', {
   method: 'POST',
   body: {
     filters: filters,
-    page: computed(() => currentPage.value)
-  }
+    page: computed(() => currentPage.value),
+  },
 })
 
 // Watch for filter changes and refresh search
@@ -81,7 +89,7 @@ const items = computed(() =>
     value: role.id,
     id: role.id,
     icon: role.icon,
-    color: role.color || 'neutral'
+    color: role.color || 'neutral',
   }))
 )
 
@@ -93,7 +101,7 @@ const selectedRoles = computed<Record<number, any>>(() => {
       map[user.id] = items.value.find(role => role.id === user.role_id)
     })
   }
-  console.log(usersSearchResult.value?.data);
+  console.log(usersSearchResult.value?.data)
 
   return map
 })
@@ -101,10 +109,14 @@ const selectedRoles = computed<Record<number, any>>(() => {
 // Update role
 const updateRole = async (userId: number, newRoleId: number) => {
   updatingRole.value.push(userId)
-  const { data: updatedRoleUser, error } = await useCachedFetch<IUserShowResponse>(`/users/${userId}/roles/${newRoleId}`, {
-    method: 'POST',
-    body: { user: userId, role: newRoleId }
-  })
+  const { data: updatedRoleUser, error } =
+    await useCachedFetch<IUserShowResponse>(
+      `/users/${userId}/roles/${newRoleId}`,
+      {
+        method: 'POST',
+        body: { user: userId, role: newRoleId },
+      }
+    )
 
   if (error.value) {
     useToast().add({
@@ -115,8 +127,8 @@ const updateRole = async (userId: number, newRoleId: number) => {
     })
   } else {
     await refresh()
-    updatingRole.value = updatingRole.value.filter(id => id !== userId);
-    const user = updatedRoleUser.value?.data;
+    updatingRole.value = updatingRole.value.filter(id => id !== userId)
+    const user = updatedRoleUser.value?.data
     useToast().add({
       title: 'تمت العملية بنجاح',
       description: `تم تحديث رتبة ${user?.name.split(' ').slice(0, 2).join(' ')} ل${roleStore.getRole(Number(user?.role_id))?.name}`,
@@ -128,37 +140,51 @@ const updateRole = async (userId: number, newRoleId: number) => {
 
 // Columns
 const columns: TableColumn<IUser>[] = [
-  { accessorKey: 'id', header: 'المعرف', cell: ({ row }) => row.getValue('id') },
-  { accessorKey: 'name', header: 'الاسم', cell: ({ row }) => row.getValue('name') },
+  {
+    accessorKey: 'id',
+    header: 'المعرف',
+    cell: ({ row }) => row.getValue('id'),
+  },
+  {
+    accessorKey: 'name',
+    header: 'الاسم',
+    cell: ({ row }) => row.getValue('name'),
+  },
   { accessorKey: 'role_id', header: 'الرتبة' },
   {
     accessorKey: 'email_verified_at',
     header: 'تاريخ تأكيد البريد',
-    cell: ({ row }) => toArabicDate(row.getValue('email_verified_at'))
+    cell: ({ row }) => toArabicDate(row.getValue('email_verified_at')),
   },
   {
     accessorKey: 'created_at',
     header: 'تاريخ الإنشاء',
-    cell: ({ row }) => toArabicDate(row.getValue('created_at'))
+    cell: ({ row }) => toArabicDate(row.getValue('created_at')),
   },
   {
     accessorKey: 'updated_at',
     header: 'آخر تعديل',
-    cell: ({ row }) => toArabicDate(row.getValue('updated_at'))
-  }
+    cell: ({ row }) => toArabicDate(row.getValue('updated_at')),
+  },
 ]
 
 // Pagination state
 const pagination = ref({
   pageIndex: 0,
-  pageSize: computed(() => usersSearchResult.value?.meta.per_page || users.value?.meta.per_page || 15).value
+  pageSize: computed(
+    () =>
+      usersSearchResult.value?.meta.per_page || users.value?.meta.per_page || 15
+  ).value,
 })
 
 // Watch for pagination changes and update currentPage
-watch(() => pagination.value.pageIndex, (newPageIndex) => {
-  currentPage.value = newPageIndex + 1
-  refreshSearch()
-})
+watch(
+  () => pagination.value.pageIndex,
+  newPageIndex => {
+    currentPage.value = newPageIndex + 1
+    refreshSearch()
+  }
+)
 
 const resetFilters = () => {
   searchTerm.value = ''
@@ -169,7 +195,7 @@ const resetFilters = () => {
 }
 
 definePageMeta({
-  title: 'المستخدمين'
+  title: 'المستخدمين',
 })
 </script>
 
@@ -184,10 +210,7 @@ definePageMeta({
         class="w-full"
         clearable
       >
-        <template
-          v-if="searchTerm.length > 0"
-          #trailing
-        >
+        <template v-if="searchTerm.length > 0" #trailing>
           <UButton
             color="neutral"
             variant="link"
@@ -210,7 +233,7 @@ definePageMeta({
       >
         <template #default>
           <span v-if="selectedRolesFilter.length">
-            {{selectedRolesFilter.map(role => role.label).join(', ')}}
+            {{ selectedRolesFilter.map(role => role.label).join(', ') }}
           </span>
           <span v-else>كل الرتب</span>
         </template>
@@ -244,7 +267,7 @@ definePageMeta({
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
         tbody: '[&>tr]:last:[&>td]:border-b-0',
         th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
-        td: 'border-b border-default'
+        td: 'border-b border-default',
       }"
     >
       <template #name-cell="{ row }">
@@ -284,10 +307,12 @@ definePageMeta({
 
     <div class="flex justify-center border-t border-default pt-4">
       <UPagination
-        :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
+        :default-page="
+          (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
+        "
         :items-per-page="table?.tableApi.getState().pagination.pageSize"
         :total="usersSearchResult?.meta?.total ?? users?.meta?.total"
-        @update:page="p => currentPage = p"
+        @update:page="p => (currentPage = p)"
         :ui="{
           last: 'rotate-180 aspect-square h-10 grid place-items-center',
           next: 'rotate-180 aspect-square h-10 grid place-items-center',

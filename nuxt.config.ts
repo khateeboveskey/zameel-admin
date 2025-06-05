@@ -1,4 +1,4 @@
-import tailwindcss from "@tailwindcss/vite";
+import tailwindcss from '@tailwindcss/vite'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -8,24 +8,27 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       baseApiUrl: process.env.BASE_API_URL || 'https://api.zameel.app',
-      apiPrefix: process.env.API_PREFIX || '/api'
-    }
+      apiPrefix: process.env.API_PREFIX || '/api',
+    },
   },
   srcDir: 'app/',
   vite: {
-    plugins: [
-      tailwindcss(),
-    ],
+    plugins: [tailwindcss()],
   },
   fonts: {
-    families: [
-      { name: 'Alexandria', provider: 'google' },
-    ]
+    families: [{ name: 'Alexandria', provider: 'google' }],
   },
   svgo: {
     componentPrefix: 'Icon',
   },
-  modules: ['@nuxt/ui-pro', '@nuxt/fonts', 'nuxt-svgo', '@vueuse/nuxt', '@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt'],
+  modules: [
+    '@nuxt/ui-pro',
+    '@nuxt/fonts',
+    'nuxt-svgo',
+    '@vueuse/nuxt',
+    '@pinia/nuxt',
+    'pinia-plugin-persistedstate/nuxt',
+  ],
   pinia: {
     storesDirs: ['./app/stores/**'],
   },

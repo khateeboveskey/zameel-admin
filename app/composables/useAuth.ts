@@ -27,7 +27,6 @@ export const useAuth = () => {
         return { error: error.value }
       }
 
-
       toast.add({
         title: 'تم تسجيل الدخول بنجاح',
         description: 'مرحبًا بك في زميل!',
@@ -35,7 +34,7 @@ export const useAuth = () => {
         icon: 'i-lucide-check-circle',
       })
 
-      const token = data.value?.data.token || '';
+      const token = data.value?.data.token || ''
 
       userStore.setToken(token)
 
