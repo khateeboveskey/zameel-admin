@@ -1,5 +1,5 @@
 {
-  "semi": false,
+  "semi": true,
   "singleQuote": true,
   "tabWidth": 2,
   "useTabs": false,
@@ -8,6 +8,6 @@
   "bracketSpacing": true,
   "arrowParens": "avoid",
   "endOfLine": "lf",
-  "bracketSameLine": false,
+  "bracketSameLine": true,
   "quoteProps": "as-needed"
 }
