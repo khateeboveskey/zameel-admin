@@ -12,7 +12,10 @@
       }"
     >
       <template #header="{ collapsed }">
-        <IconLogo v-if="!collapsed" class="text-9xl" />
+        <IconLogo
+          v-if="!collapsed"
+          class="text-9xl"
+        />
         <!-- <UDashboardSidebarCollapse variant="subtle" class="rotate-180" size="sm" /> -->
       </template>
 
@@ -25,10 +28,19 @@
           block
           :square="collapsed"
         >
-          <template v-if="!collapsed" #trailing>
+          <template
+            v-if="!collapsed"
+            #trailing
+          >
             <div class="flex items-center gap-0.5 ms-auto">
-              <UKbd value="meta" variant="subtle" />
-              <UKbd value="K" variant="subtle" />
+              <UKbd
+                value="meta"
+                variant="subtle"
+              />
+              <UKbd
+                value="K"
+                variant="subtle"
+              />
             </div>
           </template>
         </UButton>
@@ -48,7 +60,7 @@
       </template>
 
       <template #footer="{ collapsed }">
-        <UUser
+        <!-- <UUser
           :name="auth.user.name"
           :description="auth.user.email"
           :avatar="{
@@ -60,7 +72,8 @@
             avatar: 'me-1',
             name: 'leading-4!',
           }"
-        />
+        /> -->
+        <LayoutUserMenu />
       </template>
     </UDashboardSidebar>
     <UDashboardPanel class="p-10 overflow-y-auto">
@@ -77,8 +90,6 @@
 
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
-
-const auth = useUserStore()
 
 const items: NavigationMenuItem[][] = [
   [
@@ -160,18 +171,12 @@ const items: NavigationMenuItem[][] = [
       icon: 'i-lucide-message-circle',
       to: 'https://github.com/nuxt-ui-pro/dashboard',
       target: '_blank',
-      ui: {
-        linkLabelExternalIcon: '-rotate-90 ms-2',
-      },
     },
     {
       label: 'المساعدة والدعم',
       icon: 'i-lucide-info',
       to: 'https://github.com/nuxt/ui-pro',
       target: '_blank',
-      ui: {
-        linkLabelExternalIcon: '-rotate-90 ms-2',
-      },
     },
   ],
 ]
