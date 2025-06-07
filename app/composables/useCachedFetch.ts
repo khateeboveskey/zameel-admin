@@ -19,7 +19,7 @@ export const useCachedFetch = <T = unknown>(url: string, opts: any = {}) => {
     ...opts,
   }
 
-  if (method === 'GET') {
+  if (method === 'GET' || url.includes('search')) {
     fetchOptions.key = key
     fetchOptions.getCachedData = (k: string) => {
       const nuxtData = useNuxtData<T>(k)

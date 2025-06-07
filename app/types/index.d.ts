@@ -43,11 +43,13 @@ declare global {
     deleted_at: string
   }
 
-  interface IUserShowResponse extends IFetchResponse<IUser> {}
+  interface IUserShowResponse extends IFetchResponse<IUser> { }
 
-  interface IUserIndexResponse extends IPaginatedFetchResponse<IUser> {}
+  interface IUserIndexResponse extends IPaginatedFetchResponse<IUser> { }
 
-  interface ICollege extends IDeletableModel {}
+  interface ICollege extends IDeletableModel { }
+
+  interface ISubject extends IDeletableModel { }
 
   interface IMajor extends IDeletableModel {
     college_id: number
@@ -56,4 +58,4 @@ declare global {
   }
 }
 
-export {}
+export { }
