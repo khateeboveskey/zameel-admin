@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { getPaginationRowModel } from '@tanstack/vue-table'
-import type { TableColumn } from '@nuxt/ui'
-import { useRoleStore } from '~/stores/role'
+import { getPaginationRowModel } from '@tanstack/vue-table';
+import type { TableColumn } from '@nuxt/ui';
+import { useRoleStore } from '~/stores/role';
 
-const roleStore = useRoleStore()
-const table = useTemplateRef('table')
-const currentPage = ref(1)
-const updatingRole = ref<number[]>([])
+useHead({ title: 'المستخدمون' });
+
+const roleStore = useRoleStore();
+const table = useTemplateRef('table');
+const currentPage = ref(1);
+const updatingRole = ref<number[]>([]);
 
 // Search state
-const searchTerm = ref('')
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000)
-const selectedRolesFilter = ref<any[]>([])
-const verifiedOnly = ref(false)
+const searchTerm = ref('');
+const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
+const selectedRolesFilter = ref<any[]>([]);
+const verifiedOnly = ref(false);
 
 // Fetch users
 const {
@@ -21,11 +23,11 @@ const {
   refresh,
 } = await useCachedFetch<IUserIndexResponse>('/users', {
   params: { page: currentPage },
-})
+});
 
 // Advanced search
 const filters = computed(() => {
-  const filterArr: any[] = []
+  const filterArr: any[] = [];
 
   if (debouncedSearchTerm.value) {
     filterArr.push({
@@ -33,13 +35,13 @@ const filters = computed(() => {
       field: 'name',
       operator: 'like',
       value: `%${debouncedSearchTerm.value}%`,
-    })
+    });
     filterArr.push({
       type: 'or',
       field: 'email',
       operator: 'like',
       value: `%${debouncedSearchTerm.value}%`,
-    })
+    });
   }
 
   if (selectedRolesFilter.value.length) {
@@ -48,7 +50,7 @@ const filters = computed(() => {
       field: 'role_id',
       operator: 'in',
       value: selectedRolesFilter.value.map(role => role.id),
-    })
+    });
   }
 
   if (verifiedOnly.value) {
@@ -57,11 +59,11 @@ const filters = computed(() => {
       field: 'email_verified_at',
       operator: '!=',
       value: null,
-    })
+    });
   }
 
-  return filterArr.length ? [{ type: 'and', nested: filterArr }] : []
-})
+  return filterArr.length ? [{ type: 'and', nested: filterArr }] : [];
+});
 
 const {
   data: usersSearchResult,
@@ -73,13 +75,13 @@ const {
     filters: filters,
     page: computed(() => currentPage.value),
   },
-})
+});
 
 // Watch for filter changes and refresh search
 watch([debouncedSearchTerm, selectedRolesFilter, verifiedOnly], () => {
-  currentPage.value = 1
-  refreshSearch()
-})
+  currentPage.value = 1;
+  refreshSearch();
+});
 
 // Prepare role options
 const items = computed(() =>
@@ -91,24 +93,24 @@ const items = computed(() =>
     icon: role.icon,
     color: role.color || 'neutral',
   }))
-)
+);
 
 // Selected roles per user (full object)
 const selectedRoles = computed<Record<number, any>>(() => {
-  const map: Record<number, any> = {}
+  const map: Record<number, any> = {};
   if (usersSearchResult.value?.data) {
     usersSearchResult.value.data.forEach(user => {
-      map[user.id] = items.value.find(role => role.id === user.role_id)
-    })
+      map[user.id] = items.value.find(role => role.id === user.role_id);
+    });
   }
-  console.log(usersSearchResult.value?.data)
+  console.log(usersSearchResult.value?.data);
 
-  return map
-})
+  return map;
+});
 
 // Update role
 const updateRole = async (userId: number, newRoleId: number) => {
-  updatingRole.value.push(userId)
+  updatingRole.value.push(userId);
   const { data: updatedRoleUser, error } =
     await useCachedFetch<IUserShowResponse>(
       `/users/${userId}/roles/${newRoleId}`,
@@ -116,7 +118,7 @@ const updateRole = async (userId: number, newRoleId: number) => {
         method: 'POST',
         body: { user: userId, role: newRoleId },
       }
-    )
+    );
 
   if (error.value) {
     useToast().add({
@@ -124,19 +126,19 @@ const updateRole = async (userId: number, newRoleId: number) => {
       description: error.value.message,
       color: 'error',
       icon: 'i-lucide-alert-triangle',
-    })
+    });
   } else {
-    await refresh()
-    updatingRole.value = updatingRole.value.filter(id => id !== userId)
-    const user = updatedRoleUser.value?.data
+    await refresh();
+    updatingRole.value = updatingRole.value.filter(id => id !== userId);
+    const user = updatedRoleUser.value?.data;
     useToast().add({
       title: 'تمت العملية بنجاح',
       description: `تم تحديث رتبة ${user?.name.split(' ').slice(0, 2).join(' ')} ل${roleStore.getRole(Number(user?.role_id))?.name}`,
       color: 'success',
       icon: 'i-lucide-circle-check',
-    })
+    });
   }
-}
+};
 
 // Columns
 const columns: TableColumn<IUser>[] = [
@@ -166,7 +168,7 @@ const columns: TableColumn<IUser>[] = [
     header: 'آخر تعديل',
     cell: ({ row }) => toArabicDate(row.getValue('updated_at')),
   },
-]
+];
 
 // Pagination state
 const pagination = ref({
@@ -175,28 +177,28 @@ const pagination = ref({
     () =>
       usersSearchResult.value?.meta.per_page || users.value?.meta.per_page || 15
   ).value,
-})
+});
 
 // Watch for pagination changes and update currentPage
 watch(
   () => pagination.value.pageIndex,
   newPageIndex => {
-    currentPage.value = newPageIndex + 1
-    refreshSearch()
+    currentPage.value = newPageIndex + 1;
+    refreshSearch();
   }
-)
+);
 
 const resetFilters = () => {
-  searchTerm.value = ''
-  selectedRolesFilter.value = []
-  verifiedOnly.value = false
-  currentPage.value = 1
-  refreshSearch()
-}
+  searchTerm.value = '';
+  selectedRolesFilter.value = [];
+  verifiedOnly.value = false;
+  currentPage.value = 1;
+  refreshSearch();
+};
 
 definePageMeta({
   title: 'المستخدمين',
-})
+});
 </script>
 
 <template>
@@ -208,8 +210,7 @@ definePageMeta({
         placeholder="بحث بالاسم أو البريد"
         icon="i-lucide-search"
         class="w-full"
-        clearable
-      >
+        clearable>
         <template v-if="searchTerm.length > 0" #trailing>
           <UButton
             color="neutral"
@@ -217,8 +218,7 @@ definePageMeta({
             size="sm"
             icon="i-lucide-circle-x"
             aria-label="Clear input"
-            @click="searchTerm = ''"
-          />
+            @click="searchTerm = ''" />
         </template>
       </UInput>
       <USelectMenu
@@ -229,8 +229,7 @@ definePageMeta({
         class="w-72"
         placeholder="تصفية حسب الرتبة"
         :search-input="false"
-        clearable
-      >
+        clearable>
         <template #default>
           <span v-if="selectedRolesFilter.length">
             {{ selectedRolesFilter.map(role => role.label).join(', ') }}
@@ -241,14 +240,12 @@ definePageMeta({
       <UCheckbox
         v-model="verifiedOnly"
         label="مفعل البريد فقط"
-        class="items-center"
-      />
+        class="items-center" />
       <UButton
         icon="i-lucide-rotate-ccw"
         color="neutral"
         variant="outline"
-        @click="resetFilters"
-      >
+        @click="resetFilters">
         إعادة تعيين الفلاتر
       </UButton>
     </div>
@@ -268,8 +265,7 @@ definePageMeta({
         tbody: '[&>tr]:last:[&>td]:border-b-0',
         th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
         td: 'border-b border-default',
-      }"
-    >
+      }">
       <template #name-cell="{ row }">
         <div>
           <p class="font-medium text-highlighted">{{ row.original.name }}</p>
@@ -277,8 +273,7 @@ definePageMeta({
             external
             target="_blank"
             class="hover:underline"
-            :to="`mailto:${row.original.email}`"
-          >
+            :to="`mailto:${row.original.email}`">
             {{ row.original.email }}
           </NuxtLink>
         </div>
@@ -296,8 +291,7 @@ definePageMeta({
           :search-input="false"
           :loading="updatingRole.includes(row.original.id)"
           class="w-full mt-2 disabled:opacity-50"
-          @update:model-value="val => updateRole(row.original.id, val.id)"
-        >
+          @update:model-value="val => updateRole(row.original.id, val.id)">
           <template #default>
             {{ selectedRoles[row.original.id]?.label || 'اختر رتبة' }}
           </template>
@@ -319,8 +313,7 @@ definePageMeta({
           first: 'rotate-180 aspect-square h-10 grid place-items-center',
           prev: 'rotate-180 aspect-square h-10 grid place-items-center',
           item: 'aspect-square h-10 grid place-items-center',
-        }"
-      />
+        }" />
     </div>
   </div>
 </template>

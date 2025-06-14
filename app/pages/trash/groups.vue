@@ -3,6 +3,8 @@ import { ref, reactive, computed, watch, h, resolveComponent } from 'vue';
 import { getPaginationRowModel } from '@tanstack/vue-table';
 import type { TableColumn } from '@nuxt/ui';
 
+useHead({ title: 'المجموعات المحذوفة' });
+
 // ——— Refs & State ———
 const table = useTemplateRef('table');
 const currentPage = ref(1);

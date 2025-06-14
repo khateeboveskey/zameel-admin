@@ -3,6 +3,8 @@ import { ref, reactive, computed, watch, nextTick } from 'vue';
 import { getPaginationRowModel } from '@tanstack/vue-table';
 import type { TableColumn, DropdownMenuItem } from '@nuxt/ui';
 
+useHead({ title: 'التخصصات' });
+
 // ——— Refs & State ———
 const table = useTemplateRef('table');
 const currentPage = ref(1);

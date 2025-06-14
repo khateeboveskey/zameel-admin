@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
-import { getPaginationRowModel } from '@tanstack/vue-table'
-import type { TableColumn } from '@nuxt/ui'
+import { ref, reactive, computed, watch } from 'vue';
+import { getPaginationRowModel } from '@tanstack/vue-table';
+import type { TableColumn } from '@nuxt/ui';
+
+useHead({ title: 'المواد المحذوفة' });
 
 // ——— Refs & State ———
-const table = useTemplateRef('table')
-const currentPage = ref(1)
-const toast = useToast()
+const table = useTemplateRef('table');
+const currentPage = ref(1);
+const toast = useToast();
 
 // Search & Debounce
-const searchTerm = ref('')
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000)
-const restorePending = reactive<{ [key: number]: boolean }>({})
+const searchTerm = ref('');
+const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
+const restorePending = reactive<{ [key: number]: boolean }>({});
 
 // ——— Fetch Trashed Subjects ———
 const {
@@ -28,38 +30,38 @@ const {
     },
     key: 'trashed-subjects',
   }
-)
+);
 
 // ——— Pagination Setup ———
 const pagination = reactive({
   pageIndex: 0,
   pageSize: computed(() => subjectsResult.value?.meta?.per_page ?? 15),
-})
+});
 
 // ——— Watchers ———
 watch(debouncedSearchTerm, () => {
-  currentPage.value = 1
-  pagination.pageIndex = 0
-  refresh()
-})
+  currentPage.value = 1;
+  pagination.pageIndex = 0;
+  refresh();
+});
 
 watch(
   () => pagination.pageIndex,
   newIndex => {
-    currentPage.value = newIndex + 1
-    refresh()
+    currentPage.value = newIndex + 1;
+    refresh();
   }
-)
+);
 
 // ——— Restore Operation ———
 const restoreSubject = async (id: number) => {
-  if (!id) return
+  if (!id) return;
 
-  restorePending[id] = true
+  restorePending[id] = true;
 
   const { error } = await useCachedFetch<ISubject>(`/subjects/${id}/restore`, {
     method: 'POST',
-  })
+  });
 
   if (error.value) {
     toast.add({
@@ -67,18 +69,18 @@ const restoreSubject = async (id: number) => {
       description: error.value.message,
       color: 'error',
       icon: 'i-lucide-alert-triangle',
-    })
+    });
   } else {
     toast.add({
       title: 'تمت الاستعادة',
       description: `تمت استعادة المقرر.`,
       color: 'success',
       icon: 'i-lucide-circle-check',
-    })
-    refresh()
+    });
+    refresh();
   }
-  restorePending[id] = false
-}
+  restorePending[id] = false;
+};
 
 const columns: TableColumn<ISubject>[] = [
   {
@@ -116,7 +118,7 @@ const columns: TableColumn<ISubject>[] = [
     header: 'الإجراءات',
     cell: () => null,
   },
-]
+];
 </script>
 
 <template>
@@ -128,8 +130,7 @@ const columns: TableColumn<ISubject>[] = [
         placeholder="بحث باسم المقرر"
         icon="i-lucide-search"
         class="w-full"
-        clearable
-      >
+        clearable>
         <template v-if="searchTerm.length > 0" #trailing>
           <UButton
             color="neutral"
@@ -137,8 +138,7 @@ const columns: TableColumn<ISubject>[] = [
             size="sm"
             icon="i-lucide-circle-x"
             aria-label="Clear input"
-            @click="searchTerm = ''"
-          />
+            @click="searchTerm = ''" />
         </template>
       </UInput>
 
@@ -149,13 +149,12 @@ const columns: TableColumn<ISubject>[] = [
         variant="outline"
         @click="
           () => {
-            searchTerm = ''
-            currentPage = 1
-            pagination.pageIndex = 0
-            refresh()
+            searchTerm = '';
+            currentPage = 1;
+            pagination.pageIndex = 0;
+            refresh();
           }
-        "
-      >
+        ">
         إعادة تعيين الفلاتر
       </UButton>
     </div>
@@ -175,8 +174,7 @@ const columns: TableColumn<ISubject>[] = [
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
         tbody: '[&>tr]:last:[&>td]:border-b-0',
         th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
-      }"
-    >
+      }">
       <template #actions-cell="{ row }">
         <UButton
           label="استعادة"
@@ -184,8 +182,7 @@ const columns: TableColumn<ISubject>[] = [
           color="primary"
           variant="outline"
           :loading="restorePending[row.original.id] === true"
-          @click="restoreSubject(row.original.id)"
-        />
+          @click="restoreSubject(row.original.id)" />
       </template>
     </UTable>
 
@@ -199,8 +196,8 @@ const columns: TableColumn<ISubject>[] = [
         :total="subjectsResult?.meta?.total ?? 0"
         @update:page="
           p => {
-            currentPage = p
-            pagination.pageIndex = p - 1
+            currentPage = p;
+            pagination.pageIndex = p - 1;
           }
         "
         :ui="{
@@ -209,8 +206,7 @@ const columns: TableColumn<ISubject>[] = [
           first: 'rotate-180 aspect-square h-10 grid place-items-center',
           prev: 'rotate-180 aspect-square h-10 grid place-items-center',
           item: 'aspect-square h-10 grid place-items-center',
-        }"
-      />
+        }" />
     </div>
   </div>
 </template>

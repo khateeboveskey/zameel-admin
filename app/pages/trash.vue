@@ -1,4 +1,5 @@
 <script setup lang="ts">
+useHead({ title: 'سلة المحذوفات' });
 import type { NavigationMenuItem } from '@nuxt/ui';
 
 const links = [

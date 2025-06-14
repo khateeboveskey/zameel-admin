@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { getPaginationRowModel } from '@tanstack/vue-table';
 
+useHead({ title: 'المجموعات' });
+
 // ——— Refs & State ———
 const table = useTemplateRef('table');
 const currentPage = ref(1);
@@ -145,9 +147,6 @@ const addGroup = async () => {
   newGroup.pending = false;
   addModalOpen.value = false;
 };
-
-// ——— Page Meta ———
-definePageMeta({ title: 'المجموعات' });
 
 // Helper to calculate level from join year and current year
 function getLevel(joinYear: number | null): number | null {
