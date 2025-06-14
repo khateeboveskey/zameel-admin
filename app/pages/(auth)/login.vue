@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import * as z from 'zod'
-import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod';
+import type { FormSubmitEvent } from '@nuxt/ui';
 
-const toast = useToast()
-const pending = ref(false)
-const { login, user, isAuthenticated } = useAuth()
-const route = useRoute()
+const pending = ref(false);
+const { login, user, isAuthenticated } = useAuth();
+
+useHead({
+  title: 'تسجيل الدخول',
+});
 
 const fields = [
   {
@@ -27,7 +29,7 @@ const fields = [
     label: 'تذكرني',
     type: 'checkbox' as const,
   },
-]
+];
 
 const schema = z.object({
   email: z
@@ -38,35 +40,34 @@ const schema = z.object({
     .min(8, 'يجب أن يكون طول كلمة المرور 8 أحرف على الأقل')
     .max(64, 'يجب ألا يتجاوز طول كلمة المرور 64 حرفًا'),
   remember: z.boolean().optional(),
-})
+});
 
-type Schema = z.output<typeof schema>
+type Schema = z.output<typeof schema>;
 
 async function onSubmit(payload: FormSubmitEvent<Schema>) {
-  pending.value = true
+  pending.value = true;
 
   const result = await login(
     payload.data.email,
     payload.data.password,
     Boolean(payload.data.remember)
-  )
+  );
 
   if (!result.error) {
-    console.log(user.value, isAuthenticated.value)
+    console.log(user.value, isAuthenticated.value);
   }
 
-  pending.value = false
+  pending.value = false;
 }
 
 definePageMeta({
   layout: 'no-sidebar',
-})
+});
 </script>
 
 <template>
   <div
-    class="h-screen flex flex-col items-center justify-center gap-4 p-4 bg-muted"
-  >
+    class="h-screen flex flex-col items-center justify-center gap-4 p-4 bg-muted">
     <UPageCard class="w-full max-w-md">
       <UAuthForm
         :ui="{
@@ -81,8 +82,7 @@ definePageMeta({
           label: 'تسجيل الدخول',
           loading: pending,
         }"
-        @submit="onSubmit"
-      >
+        @submit="onSubmit">
         <template #leading>
           <IconLogo class="mx-auto text-[150px]" />
         </template>

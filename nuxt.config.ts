@@ -11,6 +11,11 @@ export default defineNuxtConfig({
       apiPrefix: process.env.API_PREFIX || '/api',
     },
   },
+  app: {
+    head: {
+      titleTemplate: 'زميل | %s'
+    }
+  },
   srcDir: 'app/',
   vite: {
     plugins: [tailwindcss()],

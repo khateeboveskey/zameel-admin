@@ -1,87 +1,34 @@
 <script setup lang="ts">
+import { ref, reactive, computed, watch, h, resolveComponent } from 'vue';
 import { getPaginationRowModel } from '@tanstack/vue-table';
+import type { TableColumn } from '@nuxt/ui';
 
 // ——— Refs & State ———
 const table = useTemplateRef('table');
 const currentPage = ref(1);
 const toast = useToast();
 
-// Fetch majors for select
-const { data: majors } =
-  await useCachedFetch<IPaginatedFetchResponse<IMajor>>('/majors');
-
 // Search & Debounce
 const searchTerm = ref('');
 const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
+const restorePending = reactive<{ [key: number]: boolean }>({});
 
-const levelToArabic = (level: number) => {
-  const arabicLevels = [
-    'الأول',
-    'الثاني',
-    'الثالث',
-    'الرابع',
-    'الخامس',
-    'السادس',
-    'السابع',
-    'الثامن',
-    'التاسع',
-    'العاشر',
-  ];
-  if (level >= 1 && level <= 10) {
-    return arabicLevels[level - 1];
-  }
-  return level.toString();
-};
-
-// New / Edit Modal State
-const newGroup = reactive({
-  join_year: null as number | null,
-  division: '',
-  major_id: undefined as number | undefined,
-  pending: false,
-});
-
-// Delete State
-const deletedGroupId = ref<number | null>(null);
-const addModalOpen = ref(false);
-const deleteModalOpen = ref(false);
-
-// Division options: English capitalized letters
-const divisionOptions = Array.from({ length: 26 }, (_, i) => ({
-  label: String.fromCharCode(65 + i),
-  value: String.fromCharCode(65 + i),
-}));
-
-// ——— Computed Filters ———
-const filters = computed(() => {
-  if (!debouncedSearchTerm.value) return [];
-  return [
-    {
-      type: 'and',
-      nested: [
-        {
-          type: 'or',
-          field: 'division',
-          operator: 'like',
-          value: `%${debouncedSearchTerm.value}%`,
-        },
-      ],
-    },
-  ];
-});
-
-// ——— Fetch Groups (Search Endpoint Only) ———
+// ——— Fetch Trashed Groups ———
 const {
   data: groupsResult,
   pending: loading,
   refresh,
 } = await useCachedFetch<IPaginatedFetchResponse<IGroup>>('/groups/search', {
   method: 'POST',
-  body: {
-    filters,
+  params: {
+    only_trashed: true,
     page: computed(() => currentPage.value),
   },
+  key: 'trashed-groups',
 });
+
+const { data: majors } =
+  await useCachedFetch<IPaginatedFetchResponse<IMajor>>('/majors');
 
 // ——— Pagination Setup ———
 const pagination = reactive({
@@ -104,64 +51,62 @@ watch(
   }
 );
 
-// ——— CRUD Operations ———
-
-// **Add Group**
-const addGroup = async () => {
-  if (!newGroup.join_year || !newGroup.division || !newGroup.major_id) return;
-
-  newGroup.pending = true;
-  const { error } = await useCachedFetch<IGroup>('/groups', {
+// ——— Restore Operation ———
+const restoreGroup = async (id: number) => {
+  if (!id) return;
+  restorePending[id] = true;
+  const { error } = await useCachedFetch<IGroup>(`/groups/${id}/restore`, {
     method: 'POST',
-    body: {
-      join_year: newGroup.join_year,
-      division: newGroup.division,
-      major_id: newGroup.major_id,
-    },
   });
-
   if (error.value) {
     toast.add({
-      title: 'خطأ عند إضافة مجموعة',
+      title: 'خطأ عند الاستعادة',
       description: error.value.message,
       color: 'error',
       icon: 'i-lucide-alert-triangle',
     });
   } else {
     toast.add({
-      title: 'تمت إضافة مجموعة',
-      description: `تمت إضافة "${newGroup.division}".`,
+      title: 'تمت الاستعادة',
+      description: `تمت استعادة المجموعة.`,
       color: 'success',
       icon: 'i-lucide-circle-check',
     });
-    currentPage.value = 1;
-    pagination.pageIndex = 0;
     refresh();
   }
-
-  newGroup.join_year = null;
-  newGroup.division = '';
-  newGroup.major_id = undefined;
-  newGroup.pending = false;
-  addModalOpen.value = false;
+  restorePending[id] = false;
 };
-
-// ——— Page Meta ———
-definePageMeta({ title: 'المجموعات' });
 
 // Helper to calculate level from join year and current year
 function getLevel(joinYear: number | null): number | null {
   if (!joinYear) return null;
   const now = new Date();
-  // Academic year: if after August, increment year
   let currentYear = now.getFullYear();
   if (now.getMonth() >= 7) currentYear += 1;
   const level = currentYear - joinYear;
   return level > 0 ? level : 1;
 }
 
-// Remove columns/actions related to edit/delete
-const columns = [
+const levelToArabic = (level: number) => {
+  const arabicLevels = [
+    'الأول',
+    'الثاني',
+    'الثالث',
+    'الرابع',
+    'الخامس',
+    'السادس',
+    'السابع',
+    'الثامن',
+    'التاسع',
+    'العاشر',
+  ];
+  if (level >= 1 && level <= 10) {
+    return arabicLevels[level - 1];
+  }
+  return level.toString();
+};
+
+const columns: TableColumn<IGroup>[] = [
   {
     accessorKey: 'id',
     header: 'المعرف',
@@ -183,14 +128,12 @@ const columns = [
       const level = getLevel(joinYear);
       const graduated = level !== null && level > years;
       const graduationYear = Number(joinYear) + years;
-
       let label = '';
       if (graduated) {
         label = `خريجين ${graduationYear}`;
       } else if (level !== null) {
         label = levelToArabic(level);
       }
-
       return h(
         resolveComponent('UBadge'),
         {
@@ -224,6 +167,25 @@ const columns = [
     header: 'آخر تعديل',
     cell: ({ row }: any) => toArabicDate(row.getValue('updated_at')),
   },
+  {
+    id: 'actions',
+    header: 'إجراءات',
+    cell: ({ row }: any) => {
+      const id = row.getValue('id');
+      return h(
+        resolveComponent('UButton'),
+        {
+          color: 'primary',
+          variant: 'outline',
+          icon: 'i-lucide-rotate-ccw',
+          loading: restorePending[id],
+          disabled: restorePending[id],
+          onClick: () => restoreGroup(id),
+        },
+        { default: () => 'استعادة' }
+      );
+    },
+  },
 ];
 </script>
 
@@ -247,7 +209,6 @@ const columns = [
             @click="searchTerm = ''" />
         </template>
       </UInput>
-
       <UButton
         icon="i-lucide-rotate-ccw"
         color="neutral"
@@ -263,20 +224,11 @@ const columns = [
         ">
         إعادة تعيين الفلاتر
       </UButton>
-
-      <UButton
-        icon="i-lucide-plus"
-        color="primary"
-        class="text-nowrap"
-        @click="addModalOpen = true">
-        إضافة مجموعة
-      </UButton>
     </div>
-
     <!-- 🗃️ Data Table -->
     <UTable
       ref="table"
-      empty="لا يوجد بيانات"
+      empty="لا يوجد بيانات محذوفة"
       v-model:pagination="pagination"
       :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
       :sticky="true"
@@ -289,7 +241,6 @@ const columns = [
         tbody: '[&>tr]:last:[&>td]:border-b-0',
         th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
       }" />
-
     <!-- 🔢 Pagination Controls -->
     <div class="flex justify-center border-t border-default pt-4">
       <UPagination
@@ -312,50 +263,5 @@ const columns = [
           item: 'aspect-square h-10 grid place-items-center',
         }" />
     </div>
-
-    <!-- ➕ Add Modal -->
-    <UModal
-      v-model:open="addModalOpen"
-      title="إضافة مجموعة جديدة"
-      description="أدخل بيانات المجموعة الجديدة">
-      <template #body>
-        <UFormField label="سنة الانضمام" name="join_year">
-          <UInput
-            v-model="newGroup.join_year"
-            type="number"
-            min="1900"
-            placeholder="أدخل سنة الانضمام"
-            class="w-full" />
-        </UFormField>
-        <UFormField label="الشعبة" name="division" class="mt-2">
-          <USelect
-            v-model="newGroup.division"
-            :items="divisionOptions"
-            placeholder="اختر الشعبة"
-            class="w-full" />
-        </UFormField>
-        <UFormField label="التخصص" name="major_id" class="mt-2">
-          <USelect
-            v-model="newGroup.major_id"
-            :items="majors?.data.map(m => ({ label: m.name, value: m.id }))"
-            searchable
-            placeholder="اختر التخصص"
-            class="w-full" />
-        </UFormField>
-        <div class="flex justify-end gap-2 mt-4">
-          <UButton
-            label="إلغاء"
-            color="neutral"
-            variant="outline"
-            @click="addModalOpen = false" />
-          <UButton
-            label="حفظ"
-            icon="i-lucide-save"
-            color="primary"
-            :loading="newGroup.pending"
-            @click="addGroup" />
-        </div>
-      </template>
-    </UModal>
   </div>
 </template>

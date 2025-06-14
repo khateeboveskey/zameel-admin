@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { NavigationMenuItem } from '@nuxt/ui'
+import type { NavigationMenuItem } from '@nuxt/ui';
 
 const links = [
   [
@@ -23,8 +23,13 @@ const links = [
       to: '/trash/subjects',
       icon: 'i-lucide-book-open',
     },
+    {
+      label: 'المجموعات',
+      to: '/trash/groups',
+      icon: 'i-lucide-users',
+    },
   ],
-] satisfies NavigationMenuItem[][]
+] satisfies NavigationMenuItem[][];
 </script>
 
 <template>
@@ -36,8 +41,7 @@ const links = [
         class="border-b-0"
         :ui="{
           title: 'mb-4',
-        }"
-      />
+        }" />
       <UDashboardToolbar>
         <!-- NOTE: The `-mx-1` class is used to align with the `DashboardSidebarCollapse` button here. -->
         <UNavigationMenu :items="links" highlight class="flex-1" />

@@ -56,6 +56,82 @@ declare global {
     degree_id: number
     years: number
   }
+
+  interface IGroup extends IModel {
+    join_year: number
+    division: string
+    major_id: number
+  }
+
+  interface IApply extends IModel {
+    group_id: number
+    status_id: number
+    note: string
+    user_id: number
+  }
+
+  interface ITeaching extends IModel {
+    user_id: number
+    group_id: number
+    subject_id: number
+  }
+
+  interface IBook extends IModel {
+    path: string
+    subject_id: number
+    group_id: number
+    is_practical: boolean
+    year: number
+    semester: number
+    is_arabic?: boolean // Optional, only present on creation
+  }
+
+  interface IAssignment extends IModel {
+    title: string
+    description: string
+    due_date: string
+    subject_id: number
+    group_id: number
+  }
+
+  interface IDelivery extends IModel {
+    type: string
+    content: string
+    assignment_id: number
+    user_id: number
+  }
+
+  // Auth-related types
+  interface ILoginRequest {
+    email: string
+    password: string
+    deviceName: string
+  }
+
+  interface IRegisterRequest {
+    name: string
+    email: string
+    password: string
+    password_confirmation: string
+    deviceName: string
+  }
+
+  interface IUpdatePasswordRequest {
+    password: string
+    newPassword: string
+    newPassword_confirmation: string
+  }
+
+  interface IForgotPasswordRequest {
+    email: string
+  }
+
+  interface IResetPasswordRequest {
+    token: string
+    email: string
+    password: string
+    password_confirmation: string
+  }
 }
 
 export { }
