@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getPaginationRowModel } from '@tanstack/vue-table';
+import { UButton } from '#components';
 
 useHead({ title: 'المجموعات' });
 
@@ -148,6 +149,10 @@ const addGroup = async () => {
   addModalOpen.value = false;
 };
 
+definePageMeta({
+  title: 'المجموعات',
+});
+
 // Helper to calculate level from join year and current year
 function getLevel(joinYear: number | null): number | null {
   if (!joinYear) return null;
@@ -158,6 +163,132 @@ function getLevel(joinYear: number | null): number | null {
   const level = currentYear - joinYear;
   return level > 0 ? level : 1;
 }
+
+// Track teachers and loading state per group row
+const expandedTeachers = reactive<{
+  [groupId: number]: { loading: boolean; teachers: any[] };
+}>({});
+
+// ——— Actions for Teachers Table ———
+const teacherActionModal = reactive({
+  open: false,
+  groupId: null as number | null,
+  teacher: null as any,
+  action: '' as 'detach' | 'attach' | '',
+});
+const attachModalOpen = ref(false);
+
+// For attach: select user and subject
+const attachForm = reactive({
+  user_id: null as number | null,
+  subject_id: null as number | null,
+  pending: false,
+});
+
+// Fetch all users (teachers) and subjects for attach modal
+const { data: usersResult } = await useCachedFetch<
+  IPaginatedFetchResponse<IUser>
+>('/users', {
+  params: { per_page: 1000 },
+});
+const { data: subjectsResult } = await useCachedFetch<
+  IPaginatedFetchResponse<ISubject>
+>('/subjects', {
+  params: { per_page: 1000 },
+});
+
+// Detach teacher from group
+const detachTeacher = async () => {
+  if (!teacherActionModal.groupId || !teacherActionModal.teacher) return;
+  const groupId = teacherActionModal.groupId;
+  const userId = teacherActionModal.teacher.user_id;
+  teacherActionModal.open = false;
+  try {
+    const { error } = await useCachedFetch(
+      `/groups/${groupId}/teachers/${userId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    if (error.value) {
+      toast.add({
+        title: 'خطأ عند فصل الأكاديمي',
+        description: error.value.message,
+        color: 'error',
+        icon: 'i-lucide-alert-triangle',
+      });
+    } else {
+      toast.add({
+        title: 'تم فصل الأكاديمي',
+        description: 'تم فصل الأكاديمي عن المجموعة.',
+        color: 'success',
+        icon: 'i-lucide-circle-check',
+      });
+      // Refresh teachers for this group
+      if (expandedTeachers[groupId]) {
+        expandedTeachers[groupId].loading = true;
+        const { data } = await useCachedFetch(`/groups/${groupId}/teachers`);
+        expandedTeachers[groupId].teachers = data.value?.data ?? [];
+        expandedTeachers[groupId].loading = false;
+      }
+    }
+  } catch (e) {}
+};
+
+// Attach teacher to group
+const openAttachModal = groupId => {
+  attachForm.user_id = null;
+  attachForm.subject_id = null;
+  attachForm.pending = false;
+  teacherActionModal.groupId = groupId;
+  attachModalOpen.value = true;
+};
+const attachTeacher = async () => {
+  if (
+    !teacherActionModal.groupId ||
+    !attachForm.user_id ||
+    !attachForm.subject_id
+  )
+    return;
+  attachForm.pending = true;
+  try {
+    const { error } = await useCachedFetch(
+      `/groups/${teacherActionModal.groupId}/teachers/${attachForm.user_id}`,
+      {
+        method: 'POST',
+        body: { subject_id: attachForm.subject_id },
+      }
+    );
+    if (error.value) {
+      toast.add({
+        title: 'خطأ عند ربط الأكاديمي',
+        description: error.value.message,
+        color: 'error',
+        icon: 'i-lucide-alert-triangle',
+      });
+    } else {
+      toast.add({
+        title: 'تم ربط الأكاديمي',
+        description: 'تم ربط الأكاديمي بالمجموعة.',
+        color: 'success',
+        icon: 'i-lucide-circle-check',
+      });
+      // Refresh teachers for this group
+      if (expandedTeachers[teacherActionModal.groupId]) {
+        expandedTeachers[teacherActionModal.groupId].loading = true;
+        const { data } = await useCachedFetch(
+          `/groups/${teacherActionModal.groupId}/teachers`
+        );
+        expandedTeachers[teacherActionModal.groupId].teachers =
+          data.value?.data ?? [];
+        expandedTeachers[teacherActionModal.groupId].loading = false;
+      }
+      attachModalOpen.value = false;
+    }
+  } finally {
+    attachForm.pending = false;
+  }
+};
 
 // Remove columns/actions related to edit/delete
 const columns = [
@@ -223,7 +354,50 @@ const columns = [
     header: 'آخر تعديل',
     cell: ({ row }: any) => toArabicDate(row.getValue('updated_at')),
   },
+  {
+    id: 'expand',
+    cell: ({ row }: any) =>
+      h(UButton, {
+        color: 'neutral',
+        variant: 'ghost',
+        label: 'عرض الأكاديميين',
+        icon: 'i-lucide-chevron-down',
+        square: true,
+        'aria-label': 'Expand',
+        ui: {
+          leadingIcon: [
+            'transition-transform',
+            row.getIsExpanded() ? 'duration-200 rotate-180' : '',
+          ],
+        },
+        loading: expandedTeachers[row.original.id]?.loading,
+        onClick: async () => {
+          const groupId = row.original.id;
+          if (!expandedTeachers[groupId]) {
+            expandedTeachers[groupId] = { loading: false, teachers: [] };
+          }
+          // Only fetch if not already loaded
+          if (
+            !row.getIsExpanded() ||
+            expandedTeachers[groupId].teachers.length === 0
+          ) {
+            expandedTeachers[groupId].loading = true;
+            try {
+              const { data } = await useCachedFetch(
+                `/groups/${groupId}/teachers`
+              );
+              expandedTeachers[groupId].teachers = data.value?.data ?? [];
+            } finally {
+              expandedTeachers[groupId].loading = false;
+            }
+          }
+          row.toggleExpanded();
+        },
+      }),
+  },
 ];
+
+const expanded = ref({});
 </script>
 
 <template>
@@ -274,6 +448,7 @@ const columns = [
 
     <!-- 🗃️ Data Table -->
     <UTable
+      v-model:expanded="expanded"
       ref="table"
       empty="لا يوجد بيانات"
       v-model:pagination="pagination"
@@ -287,7 +462,77 @@ const columns = [
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
         tbody: '[&>tr]:last:[&>td]:border-b-0',
         th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
-      }" />
+      }">
+      <template #expanded="{ row }">
+        <div
+          v-if="expandedTeachers[row.original.id]?.loading"
+          class="p-4 text-center">
+          <span>جاري تحميل المعلمين...</span>
+        </div>
+        <div v-else>
+          <template v-if="expandedTeachers[row.original.id]?.teachers?.length">
+            <div class="p-4">
+              <div class="font-bold mb-2 flex items-center justify-between">
+                <span>المعلمين:</span>
+                <UButton
+                  color="primary"
+                  icon="i-lucide-link"
+                  size="sm"
+                  variant="soft"
+                  @click="openAttachModal(row.original.id)">
+                  ربط أكاديمي
+                </UButton>
+              </div>
+              <UTable
+                :columns="[
+                  { accessorKey: 'name', header: 'اسم الأكاديمي' },
+                  { accessorKey: 'subject', header: 'المادة' },
+                  { accessorKey: 'actions', header: 'الإجراءات' },
+                ]"
+                :data="
+                  expandedTeachers[row.original.id].teachers.map(t => ({
+                    ...t,
+                    subject: t.subject?.name || '-',
+                  }))
+                "
+                :ui="{
+                  th: 'text-right',
+                }">
+                <template #actions-cell="{ row: teacherRow }">
+                  <UButton
+                    color="error"
+                    icon="i-lucide-unlink"
+                    size="sm"
+                    variant="soft"
+                    @click="
+                      () => {
+                        teacherActionModal.open = true;
+                        teacherActionModal.groupId = row.original.id;
+                        teacherActionModal.teacher = teacherRow.original;
+                        teacherActionModal.action = 'detach';
+                      }
+                    ">
+                    فصل الأكاديمي
+                  </UButton>
+                </template>
+              </UTable>
+            </div>
+          </template>
+          <div v-else class="p-4 text-center text-gray-500">
+            لا يوجد معلمين لهذه المجموعة.
+            <div class="mt-2">
+              <UButton
+                color="primary"
+                icon="i-lucide-link"
+                size="sm"
+                @click="openAttachModal(row.original.id)">
+                ربط أكاديمي
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </template>
+    </UTable>
 
     <!-- 🔢 Pagination Controls -->
     <div class="flex justify-center border-t border-default pt-4">
@@ -353,6 +598,73 @@ const columns = [
             color="primary"
             :loading="newGroup.pending"
             @click="addGroup" />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- فصل الأكاديمي Modal -->
+    <UModal
+      v-model:open="teacherActionModal.open"
+      title="فصل الأكاديمي"
+      description="هل أنت متأكد من فصل هذا الأكاديمي من المجموعة؟"
+      :ui="{ header: 'border-b-0' }"
+      v-if="teacherActionModal.action === 'detach'">
+      <template #body>
+        <div class="flex justify-end gap-2 mt-4">
+          <UButton
+            label="إلغاء"
+            color="neutral"
+            variant="outline"
+            @click="teacherActionModal.open = false" />
+          <UButton
+            label="فصل"
+            icon="i-lucide-unlink"
+            color="error"
+            @click="detachTeacher" />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- ربط أكاديمي Modal -->
+    <UModal
+      v-model:open="attachModalOpen"
+      title="ربط أكاديمي"
+      description="اختر الأكاديمي والمادة لربطهم بالمجموعة">
+      <template #body>
+        <UFormField label="الأكاديمي" name="user_id">
+          <USelect
+            v-model="attachForm.user_id"
+            :items="
+              usersResult?.data
+                .filter(u => u.role_id === 2 || u.role_id === 3)
+                .map(u => ({ label: u.name, value: u.id }))
+            "
+            searchable
+            placeholder="اختر الأكاديمي"
+            class="w-full" />
+        </UFormField>
+        <UFormField label="المادة" name="subject_id" class="mt-2">
+          <USelect
+            v-model="attachForm.subject_id"
+            :items="
+              subjectsResult?.data.map(s => ({ label: s.name, value: s.id }))
+            "
+            searchable
+            placeholder="اختر المادة"
+            class="w-full" />
+        </UFormField>
+        <div class="flex justify-end gap-2 mt-4">
+          <UButton
+            label="إلغاء"
+            color="neutral"
+            variant="outline"
+            @click="attachModalOpen = false" />
+          <UButton
+            label="ربط"
+            icon="i-lucide-link"
+            color="primary"
+            :loading="attachForm.pending"
+            @click="attachTeacher" />
         </div>
       </template>
     </UModal>

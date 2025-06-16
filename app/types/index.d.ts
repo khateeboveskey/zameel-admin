@@ -132,6 +132,13 @@ declare global {
     password: string
     password_confirmation: string
   }
+
+  type Period = 'daily' | 'weekly' | 'monthly'
+
+  interface Range {
+    start: Date
+    end: Date
+  }
 }
 
 export { }

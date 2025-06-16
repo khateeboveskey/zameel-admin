@@ -4,6 +4,9 @@ import { getPaginationRowModel } from '@tanstack/vue-table';
 import type { TableColumn, DropdownMenuItem } from '@nuxt/ui';
 
 useHead({ title: 'الكليات' });
+definePageMeta({
+  title: 'الكليات'
+});
 
 // ——— Refs & State ———
 const table = useTemplateRef('table');

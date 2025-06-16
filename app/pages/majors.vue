@@ -281,7 +281,7 @@ function openDeleteModal(id: number) {
 }
 
 // ——— Page Meta ———
-definePageMeta({ title: 'الكليات' });
+definePageMeta({ title: 'التخصصات' });
 </script>
 
 <template>
