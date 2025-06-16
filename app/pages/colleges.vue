@@ -5,7 +5,8 @@ import type { TableColumn, DropdownMenuItem } from '@nuxt/ui';
 
 useHead({ title: 'الكليات' });
 definePageMeta({
-  title: 'الكليات'
+  title: 'الكليات',
+  description: 'عرض وتعديل وحذف وإضافة كليات الجامعة',
 });
 
 // ——— Refs & State ———

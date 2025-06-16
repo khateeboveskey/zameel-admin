@@ -257,7 +257,7 @@ function openDeleteModal(id: number) {
 }
 
 // ——— Page Meta ———
-definePageMeta({ title: 'المواد' });
+definePageMeta({ title: 'المواد', description: 'عرض وإدارة المواد الدراسية في الجامعة كافة' });
 </script>
 
 <template>

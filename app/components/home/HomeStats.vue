@@ -39,10 +39,6 @@ const stats = [
     to: '/subjects',
   },
 ];
-
-definePageMeta({
-  title: 'الرئيسية',
-});
 </script>
 
 <template>

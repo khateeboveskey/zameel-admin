@@ -151,6 +151,8 @@ const addGroup = async () => {
 
 definePageMeta({
   title: 'المجموعات',
+  description:
+    'أو "الدفع"... عرض معلومات الدفع، إضافة دفعة، عرض أكاديميي هذه الدفعة وموادهم وعمليات ربط الأكاديميين وفصلهم',
 });
 
 // Helper to calculate level from join year and current year

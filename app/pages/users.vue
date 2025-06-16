@@ -198,6 +198,8 @@ const resetFilters = () => {
 
 definePageMeta({
   title: 'المستخدمين',
+  description:
+    'عرض كل المستخدمين، ويشمل ذلك رتبة كل مستخدم (مشرف، إداري، أكاديمي، مندوب، أو طالب).',
 });
 </script>
 

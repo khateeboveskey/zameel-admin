@@ -281,7 +281,7 @@ function openDeleteModal(id: number) {
 }
 
 // ——— Page Meta ———
-definePageMeta({ title: 'التخصصات' });
+definePageMeta({ title: 'التخصصات', description: 'عرض وإدارة تخصصات الكليات' });
 </script>
 
 <template>
