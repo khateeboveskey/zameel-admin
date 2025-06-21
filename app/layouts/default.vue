@@ -100,6 +100,7 @@ const items: NavigationMenuItem[][] = [
       class: 'mt-4',
       icon: 'i-lucide-trash',
       type: 'trigger',
+      defaultOpen: true,
       children: [
         {
           label: 'الكليات',
@@ -113,16 +114,6 @@ const items: NavigationMenuItem[][] = [
           label: 'المواد',
           to: '/trash/subjects',
         },
-      ],
-    },
-    {
-      label: 'الإعدادات',
-      to: '/settings',
-      icon: 'i-lucide-settings',
-      children: [
-        { label: 'عام' },
-        { label: 'الأعضاء' },
-        { label: 'الإشعارات' },
       ],
     },
   ],

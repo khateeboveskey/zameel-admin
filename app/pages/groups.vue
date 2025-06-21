@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getPaginationRowModel } from '@tanstack/vue-table';
+import { UButton } from '#components'
 
 useHead({ title: 'المجموعات' });
 
