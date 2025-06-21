@@ -400,7 +400,7 @@ definePageMeta({ title: 'التخصصات', description: 'عرض وإدارة ت
     <UModal
       v-model:open="deleteModalOpen"
       title="حذف التخصص"
-      description="هل أنت متأكد من حذف هذه التخصص؟"
+      description="هل أنت متأكد من حذف هذا التخصص؟"
       :ui="{ header: 'border-b-0' }">
       <template #body>
         <div class="flex justify-end gap-2 mt-4">
