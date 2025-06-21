@@ -14,22 +14,17 @@ definePageMeta({
 </script>
 
 <template>
-  <UDashboardPanel id="home">
+  <UDashboardPanel class="mb-0" id="home">
     <template #header>
-      <UDashboardToolbar>
-        <template #left>
-          <!-- NOTE: The `-ms-1` class is used to align with the `DashboardSidebarCollapse` button here. -->
-          <HomeDateRangePicker v-model="range" class="-ms-1" />
-
-          <HomePeriodSelect v-model="period" :range="range" />
-        </template>
+      <UDashboardToolbar class="-mt-4">
+        <HomeDateRangePicker v-model="range" />
+        <HomePeriodSelect v-model="period" :range="range" />
       </UDashboardToolbar>
     </template>
 
     <template #body>
       <HomeStats :period="period" :range="range" />
       <HomeChart :period="period" :range="range" />
-      <!-- <HomeSales :period="period" :range="range" /> -->
     </template>
   </UDashboardPanel>
 </template>
