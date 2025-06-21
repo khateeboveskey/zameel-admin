@@ -1,18 +1,15 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue';
-import { getPaginationRowModel } from '@tanstack/vue-table';
+import { ref, reactive, computed } from 'vue';
 import type { TableColumn } from '@nuxt/ui';
 
 useHead({ title: 'الكليات المحذوفة' });
 
 // ——— Refs & State ———
 const table = useTemplateRef('table');
-const currentPage = ref(1);
 const toast = useToast();
 
-// Search & Debounce
+// Search
 const searchTerm = ref('');
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
 const restorePending = reactive<{ [key: number]: boolean }>({});
 
 // ——— Fetch Colleges (Search Endpoint Only) ———
@@ -26,32 +23,19 @@ const {
     method: 'POST',
     params: {
       only_trashed: true,
-      page: computed(() => currentPage.value),
     },
     key: 'trashed',
   }
 );
 
-// ——— Pagination Setup ———
-const pagination = reactive({
-  pageIndex: 0,
-  pageSize: computed(() => collegesResult.value?.meta?.per_page ?? 15),
+// ——— Client-side Filtered Data ———
+const filteredColleges = computed(() => {
+  if (!collegesResult.value?.data) return [];
+  if (!searchTerm.value) return collegesResult.value.data;
+  return collegesResult.value.data.filter(college =>
+    college.name?.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
 });
-
-// ——— Watchers ———
-watch(debouncedSearchTerm, () => {
-  currentPage.value = 1;
-  pagination.pageIndex = 0;
-  refresh();
-});
-
-watch(
-  () => pagination.pageIndex,
-  newIndex => {
-    currentPage.value = newIndex + 1;
-    refresh();
-  }
-);
 
 // ——— Restore Operation ———
 const restoreCollege = async (id: number) => {
@@ -140,12 +124,10 @@ const columns: TableColumn<ICollege>[] = [
         @click="
           () => {
             searchTerm = '';
-            currentPage = 1;
-            pagination.pageIndex = 0;
             refresh();
           }
         ">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
     </div>
 
@@ -153,12 +135,10 @@ const columns: TableColumn<ICollege>[] = [
     <UTable
       ref="table"
       empty="لا يوجد بيانات"
-      v-model:pagination="pagination"
-      :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
       :sticky="true"
       :loading="loading"
       :columns="columns as any"
-      :data="collegesResult?.data"
+      :data="filteredColleges"
       :ui="{
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
@@ -175,28 +155,5 @@ const columns: TableColumn<ICollege>[] = [
           @click="restoreCollege(row.original.id)" />
       </template>
     </UTable>
-
-    <!-- 🔢 Pagination Controls -->
-    <div class="flex justify-center border-t border-default pt-4">
-      <UPagination
-        :default-page="
-          (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
-        "
-        :items-per-page="table?.tableApi.getState().pagination.pageSize"
-        :total="collegesResult?.meta?.total ?? 0"
-        @update:page="
-          p => {
-            currentPage = p;
-            pagination.pageIndex = p - 1;
-          }
-        "
-        :ui="{
-          last: 'rotate-180 aspect-square h-10 grid place-items-center',
-          next: 'rotate-180 aspect-square h-10 grid place-items-center',
-          first: 'rotate-180 aspect-square h-10 grid place-items-center',
-          prev: 'rotate-180 aspect-square h-10 grid place-items-center',
-          item: 'aspect-square h-10 grid place-items-center',
-        }" />
-    </div>
   </div>
 </template>

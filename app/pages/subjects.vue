@@ -232,7 +232,7 @@ definePageMeta({
         class="text-nowrap"
         variant="outline"
         @click="searchTerm = ''">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
 
       <UButton

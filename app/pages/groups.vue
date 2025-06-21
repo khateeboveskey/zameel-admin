@@ -436,7 +436,7 @@ const expanded = ref({});
             refresh();
           }
         ">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
 
       <UButton

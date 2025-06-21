@@ -15,19 +15,9 @@ const links = [
       icon: 'i-lucide-square-library',
     },
     {
-      label: 'الأكاديميين',
-      to: '/trash/academics',
-      icon: 'i-lucide-book-user',
-    },
-    {
       label: 'المواد',
       to: '/trash/subjects',
       icon: 'i-lucide-book-open',
-    },
-    {
-      label: 'المجموعات',
-      to: '/trash/groups',
-      icon: 'i-lucide-users',
     },
   ],
 ] satisfies NavigationMenuItem[][];

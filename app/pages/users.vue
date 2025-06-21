@@ -248,7 +248,7 @@ definePageMeta({
         color="neutral"
         variant="outline"
         @click="resetFilters">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
     </div>
 

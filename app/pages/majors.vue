@@ -279,7 +279,7 @@ definePageMeta({ title: 'التخصصات', description: 'عرض وإدارة ت
             refresh();
           }
         ">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
 
       <UButton

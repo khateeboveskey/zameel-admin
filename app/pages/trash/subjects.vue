@@ -117,7 +117,7 @@ const columns: TableColumn<ISubject>[] = [
         class="text-nowrap"
         variant="outline"
         @click="searchTerm = ''">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
     </div>
 

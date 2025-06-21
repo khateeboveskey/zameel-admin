@@ -8,6 +8,16 @@ const range = shallowRef<Range>({
 });
 const period = ref<Period>('يومي');
 
+useHead({
+  title: 'الرئيسية',
+  meta: [
+    {
+      name: 'description',
+      content: 'لوحة التحكم الرئيسية لعرض الإحصائيات والرسوم البيانية.',
+    },
+  ],
+});
+
 definePageMeta({
   title: 'الرئيسية',
 });

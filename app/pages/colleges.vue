@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { getPaginationRowModel } from '@tanstack/vue-table';
 import type { TableColumn, DropdownMenuItem } from '@nuxt/ui';
 
@@ -11,12 +11,10 @@ definePageMeta({
 
 // ——— Refs & State ———
 const table = useTemplateRef('table');
-const currentPage = ref(1);
 const toast = useToast();
 
-// Search & Debounce
+// Search State
 const searchTerm = ref('');
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
 
 // New / Edit Modal State
 const newCollege = reactive({ name: '', pending: false });
@@ -36,24 +34,6 @@ const addModalOpen = ref(false);
 const editModalOpen = ref(false);
 const deleteModalOpen = ref(false);
 
-// ——— Computed Filters ———
-const filters = computed(() => {
-  if (!debouncedSearchTerm.value) return [];
-  return [
-    {
-      type: 'and',
-      nested: [
-        {
-          type: 'or',
-          field: 'name',
-          operator: 'like',
-          value: `%${debouncedSearchTerm.value}%`,
-        },
-      ],
-    },
-  ];
-});
-
 // ——— Fetch Colleges (Search Endpoint Only) ———
 const {
   data: collegesResult,
@@ -63,36 +43,17 @@ const {
   '/colleges/search',
   {
     method: 'POST',
-    body: {
-      filters,
-      page: computed(() => currentPage.value),
-    },
+    body: {},
   }
 );
 
-// ——— Pagination Setup ———
-const pagination = reactive({
-  pageIndex: 0,
-  // **Make pageSize reactive** so it updates when server-side `per_page` changes
-  pageSize: computed(() => collegesResult.value?.meta?.per_page ?? 15),
+// ——— Client-side Filtered Data ———
+const filteredColleges = computed(() => {
+  if (!searchTerm.value) return collegesResult.value?.data || [];
+  return (collegesResult.value?.data || []).filter(college =>
+    college.name.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
 });
-
-// ——— Watchers ———
-// 1. Reset to first page on new search term
-watch(debouncedSearchTerm, () => {
-  currentPage.value = 1;
-  pagination.pageIndex = 0;
-  refresh();
-});
-
-// 2. Sync pagination.pageIndex → currentPage
-watch(
-  () => pagination.pageIndex,
-  newIndex => {
-    currentPage.value = newIndex + 1;
-    refresh();
-  }
-);
 
 // ——— CRUD Operations ———
 
@@ -298,12 +259,10 @@ function openDeleteModal(id: number) {
         @click="
           () => {
             searchTerm = '';
-            currentPage = 1;
-            pagination.pageIndex = 0;
             refresh();
           }
         ">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
 
       <UButton
@@ -319,12 +278,9 @@ function openDeleteModal(id: number) {
     <UTable
       ref="table"
       empty="لا يوجد بيانات"
-      v-model:pagination="pagination"
-      :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
-      :sticky="true"
       :loading="loading"
       :columns="columns as any"
-      :data="collegesResult?.data"
+      :data="filteredColleges"
       :ui="{
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
@@ -348,29 +304,6 @@ function openDeleteModal(id: number) {
         </UDropdownMenu>
       </template>
     </UTable>
-
-    <!-- 🔢 Pagination Controls -->
-    <div class="flex justify-center border-t border-default pt-4">
-      <UPagination
-        :default-page="
-          (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
-        "
-        :items-per-page="table?.tableApi.getState().pagination.pageSize"
-        :total="collegesResult?.meta?.total ?? 0"
-        @update:page="
-          p => {
-            currentPage = p;
-            pagination.pageIndex = p - 1;
-          }
-        "
-        :ui="{
-          last: 'rotate-180 aspect-square h-10 grid place-items-center',
-          next: 'rotate-180 aspect-square h-10 grid place-items-center',
-          first: 'rotate-180 aspect-square h-10 grid place-items-center',
-          prev: 'rotate-180 aspect-square h-10 grid place-items-center',
-          item: 'aspect-square h-10 grid place-items-center',
-        }" />
-    </div>
 
     <!-- ➕ Add Modal -->
     <UModal

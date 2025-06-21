@@ -127,7 +127,7 @@ const columns: TableColumn<IMajor>[] = [
         class="text-nowrap"
         variant="outline"
         @click="searchTerm = ''">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
     </div>
     <!-- 🗃️ Data Table -->
