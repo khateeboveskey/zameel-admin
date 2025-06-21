@@ -34,14 +34,14 @@ const { data } = await useAsyncData<DataRecord[]>(
   async () => {
     const dates = (
       {
-        daily: eachDayOfInterval,
-        weekly: eachWeekOfInterval,
-        monthly: eachMonthOfInterval,
+        يومي: eachDayOfInterval,
+        أسبوعي: eachWeekOfInterval,
+        شهري: eachMonthOfInterval,
       } as Record<Period, typeof eachDayOfInterval>
     )[props.period](props.range);
 
-    const min = 1000;
-    const max = 10000;
+    const min = 5;
+    const max = 50;
 
     return dates.map(date => ({
       date,
@@ -61,17 +61,13 @@ const total = computed(() =>
   data.value.reduce((acc: number, { amount }) => acc + amount, 0)
 );
 
-const formatNumber = new Intl.NumberFormat('en', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 0,
-}).format;
+const formatNumber = new Intl.NumberFormat('en').format;
 
 const formatDate = (date: Date): string => {
   return {
-    daily: format(date, 'd MMM'),
-    weekly: format(date, 'd MMM'),
-    monthly: format(date, 'MMM yyy'),
+    يومي: format(date, 'd MMM'),
+    أسبوعي: format(date, 'd MMM'),
+    شهري: format(date, 'MMM yyy'),
   }[props.period];
 };
 
@@ -91,7 +87,7 @@ const template = (d: DataRecord) =>
   <UCard ref="cardRef" :ui="{ body: '!px-0 !pt-0 !pb-3' }">
     <template #header>
       <div>
-        <p class="text-xs text-muted uppercase mb-1.5">Revenue</p>
+        <p class="text-xs text-muted uppercase mb-1.5">تغيّر الطلاب</p>
         <p class="text-3xl text-highlighted font-semibold">
           {{ formatNumber(total) }}
         </p>

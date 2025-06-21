@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { getPaginationRowModel } from '@tanstack/vue-table';
 import type { TableColumn } from '@nuxt/ui';
-import { useRoleStore } from '~/stores/role';
 
 useHead({ title: 'المستخدمون' });
 
@@ -248,7 +247,7 @@ definePageMeta({
         color="neutral"
         variant="outline"
         @click="resetFilters">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
     </div>
 

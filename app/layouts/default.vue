@@ -110,10 +110,6 @@ const items: NavigationMenuItem[][] = [
           to: '/trash/majors',
         },
         {
-          label: 'الأكاديميين',
-          to: '/trash/academics',
-        },
-        {
           label: 'المواد',
           to: '/trash/subjects',
         },

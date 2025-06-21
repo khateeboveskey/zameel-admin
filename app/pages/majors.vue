@@ -13,7 +13,6 @@ const degreeStore = useDegreeStore();
 
 // Search & Debounce
 const searchTerm = ref('');
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
 
 // New / Edit Modal State
 const newMajor = reactive({
@@ -39,22 +38,13 @@ const addModalOpen = ref(false);
 const editModalOpen = ref(false);
 const deleteModalOpen = ref(false);
 
-// ——— Computed Filters ———
-const filters = computed(() => {
-  if (!debouncedSearchTerm.value) return [];
-  return [
-    {
-      type: 'and',
-      nested: [
-        {
-          type: 'or',
-          field: 'name',
-          operator: 'like',
-          value: `%${debouncedSearchTerm.value}%`,
-        },
-      ],
-    },
-  ];
+// ——— Client-side Filtered Majors ———
+const filteredMajors = computed(() => {
+  if (!searchTerm.value) return majorsResult.value?.data || [];
+  const term = searchTerm.value.toLowerCase();
+  return (majorsResult.value?.data || []).filter(major =>
+    major.name.toLowerCase().includes(term)
+  );
 });
 
 // ——— Fetch Majors (Search Endpoint Only) ———
@@ -66,27 +56,6 @@ const {
 
 const { data: colleges } =
   await useCachedFetch<IPaginatedFetchResponse<ICollege>>('/colleges');
-
-// ——— Pagination Setup ———
-const pagination = reactive({
-  pageIndex: 0,
-  pageSize: computed(() => majorsResult.value?.meta?.per_page ?? 15),
-});
-
-// ——— Watchers ———
-watch(debouncedSearchTerm, () => {
-  currentPage.value = 1;
-  pagination.pageIndex = 0;
-  refresh();
-});
-
-watch(
-  () => pagination.pageIndex,
-  newIndex => {
-    currentPage.value = newIndex + 1;
-    refresh();
-  }
-);
 
 // ——— CRUD Operations ———
 
@@ -126,7 +95,6 @@ const addMajor = async () => {
       icon: 'i-lucide-circle-check',
     });
     currentPage.value = 1;
-    pagination.pageIndex = 0;
     refresh();
   }
 
@@ -194,11 +162,6 @@ const deleteMajor = async () => {
       color: 'success',
       icon: 'i-lucide-circle-check',
     });
-    const remainingOnPage = majorsResult.value?.data.length ?? 0;
-    if (remainingOnPage === 1 && currentPage.value > 1) {
-      currentPage.value -= 1;
-      pagination.pageIndex = currentPage.value - 1;
-    }
     refresh();
   }
 
@@ -313,12 +276,10 @@ definePageMeta({ title: 'التخصصات', description: 'عرض وإدارة ت
         @click="
           () => {
             searchTerm = '';
-            currentPage = 1;
-            pagination.pageIndex = 0;
             refresh();
           }
         ">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
 
       <UButton
@@ -334,12 +295,10 @@ definePageMeta({ title: 'التخصصات', description: 'عرض وإدارة ت
     <UTable
       ref="table"
       empty="لا يوجد بيانات"
-      v-model:pagination="pagination"
-      :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
       :sticky="true"
       :loading="loading"
       :columns="columns as any"
-      :data="majorsResult?.data"
+      :data="filteredMajors"
       :ui="{
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
@@ -363,29 +322,6 @@ definePageMeta({ title: 'التخصصات', description: 'عرض وإدارة ت
         </UDropdownMenu>
       </template>
     </UTable>
-
-    <!-- 🔢 Pagination Controls -->
-    <div class="flex justify-center border-t border-default pt-4">
-      <UPagination
-        :default-page="
-          (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
-        "
-        :items-per-page="table?.tableApi.getState().pagination.pageSize"
-        :total="majorsResult?.meta?.total ?? 0"
-        @update:page="
-          p => {
-            currentPage = p;
-            pagination.pageIndex = p - 1;
-          }
-        "
-        :ui="{
-          last: 'rotate-180 aspect-square h-10 grid place-items-center',
-          next: 'rotate-180 aspect-square h-10 grid place-items-center',
-          first: 'rotate-180 aspect-square h-10 grid place-items-center',
-          prev: 'rotate-180 aspect-square h-10 grid place-items-center',
-          item: 'aspect-square h-10 grid place-items-center',
-        }" />
-    </div>
 
     <!-- ➕ Add Modal -->
     <UModal
@@ -464,7 +400,7 @@ definePageMeta({ title: 'التخصصات', description: 'عرض وإدارة ت
     <UModal
       v-model:open="deleteModalOpen"
       title="حذف التخصص"
-      description="هل أنت متأكد من حذف هذه التخصص؟"
+      description="هل أنت متأكد من حذف هذا التخصص؟"
       :ui="{ header: 'border-b-0' }">
       <template #body>
         <div class="flex justify-end gap-2 mt-4">

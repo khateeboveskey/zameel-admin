@@ -1,18 +1,15 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch, nextTick } from 'vue';
-import { getPaginationRowModel } from '@tanstack/vue-table';
+import { ref, reactive, computed, nextTick } from 'vue';
 import type { TableColumn, DropdownMenuItem } from '@nuxt/ui';
 
 useHead({ title: 'المواد' });
 
 // ——— Refs & State ———
 const table = useTemplateRef('table');
-const currentPage = ref(1);
 const toast = useToast();
 
-// Search & Debounce
+// Search
 const searchTerm = ref('');
-const debouncedSearchTerm = debouncedRef(searchTerm, 1000);
 
 // New / Edit Modal State
 const newSubject = reactive({ name: '', pending: false });
@@ -32,24 +29,6 @@ const addModalOpen = ref(false);
 const editModalOpen = ref(false);
 const deleteModalOpen = ref(false);
 
-// ——— Computed Filters ———
-const filters = computed(() => {
-  if (!debouncedSearchTerm.value) return [];
-  return [
-    {
-      type: 'and',
-      nested: [
-        {
-          type: 'or',
-          field: 'name',
-          operator: 'like',
-          value: `%${debouncedSearchTerm.value}%`,
-        },
-      ],
-    },
-  ];
-});
-
 // ——— Fetch Subjects (Search Endpoint Only) ———
 const {
   data: subjectsResult,
@@ -59,35 +38,16 @@ const {
   '/subjects/search',
   {
     method: 'POST',
-    body: {
-      filters,
-      page: computed(() => currentPage.value),
-    },
   }
 );
 
-console.log(subjectsResult.value);
-
-// ——— Pagination Setup ———
-const pagination = reactive({
-  pageIndex: 0,
-  pageSize: computed(() => subjectsResult.value?.meta?.per_page ?? 15),
+// ——— Client-side Filtered Data ———
+const filteredSubjects = computed(() => {
+  if (!searchTerm.value) return subjectsResult.value?.data || [];
+  return (subjectsResult.value?.data || []).filter(subject =>
+    subject.name?.toLowerCase().includes(searchTerm.value.toLowerCase())
+  );
 });
-
-// ——— Watchers ———
-watch(debouncedSearchTerm, () => {
-  currentPage.value = 1;
-  pagination.pageIndex = 0;
-  refresh();
-});
-
-watch(
-  () => pagination.pageIndex,
-  newIndex => {
-    currentPage.value = newIndex + 1;
-    refresh();
-  }
-);
 
 // ——— CRUD Operations ———
 
@@ -115,8 +75,6 @@ const addSubject = async () => {
       color: 'success',
       icon: 'i-lucide-circle-check',
     });
-    currentPage.value = 1;
-    pagination.pageIndex = 0;
     refresh();
   }
 
@@ -183,11 +141,6 @@ const deleteSubject = async () => {
       color: 'success',
       icon: 'i-lucide-circle-check',
     });
-    const remainingOnPage = subjectsResult.value?.data.length ?? 0;
-    if (remainingOnPage === 1 && currentPage.value > 1) {
-      currentPage.value -= 1;
-      pagination.pageIndex = currentPage.value - 1;
-    }
     refresh();
   }
 
@@ -218,7 +171,7 @@ const columns: TableColumn<ISubject>[] = [
   },
   {
     accessorKey: 'name',
-    header: 'اسم المادة',
+    header: 'اسم المقرر',
     cell: ({ row }) => row.getValue('name'),
   },
   {
@@ -257,7 +210,10 @@ function openDeleteModal(id: number) {
 }
 
 // ——— Page Meta ———
-definePageMeta({ title: 'المواد', description: 'عرض وإدارة المواد الدراسية في الجامعة كافة' });
+definePageMeta({
+  title: 'المواد',
+  description: 'عرض وإدارة المواد الدراسية في الجامعة كافة',
+});
 </script>
 
 <template>
@@ -266,35 +222,17 @@ definePageMeta({ title: 'المواد', description: 'عرض وإدارة الم
     <div class="flex gap-4 items-center">
       <UInput
         v-model="searchTerm"
-        placeholder="بحث باسم المادة"
+        placeholder="بحث باسم المقرر"
         icon="i-lucide-search"
         class="w-full"
-        clearable>
-        <template v-if="searchTerm.length > 0" #trailing>
-          <UButton
-            color="neutral"
-            variant="link"
-            size="sm"
-            icon="i-lucide-circle-x"
-            aria-label="Clear input"
-            @click="searchTerm = ''" />
-        </template>
-      </UInput>
-
+        clearable />
       <UButton
         icon="i-lucide-rotate-ccw"
         color="neutral"
         class="text-nowrap"
         variant="outline"
-        @click="
-          () => {
-            searchTerm = '';
-            currentPage = 1;
-            pagination.pageIndex = 0;
-            refresh();
-          }
-        ">
-        إعادة تعيين الفلاتر
+        @click="searchTerm = ''">
+        تحديث
       </UButton>
 
       <UButton
@@ -310,12 +248,9 @@ definePageMeta({ title: 'المواد', description: 'عرض وإدارة الم
     <UTable
       ref="table"
       empty="لا يوجد بيانات"
-      v-model:pagination="pagination"
-      :pagination-options="{ getPaginationRowModel: getPaginationRowModel() }"
-      :sticky="true"
       :loading="loading"
       :columns="columns as any"
-      :data="subjectsResult?.data"
+      :data="filteredSubjects"
       :ui="{
         base: 'table-fixed border-separate border-spacing-0',
         thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
@@ -339,29 +274,6 @@ definePageMeta({ title: 'المواد', description: 'عرض وإدارة الم
         </UDropdownMenu>
       </template>
     </UTable>
-
-    <!-- 🔢 Pagination Controls -->
-    <div class="flex justify-center border-t border-default pt-4">
-      <UPagination
-        :default-page="
-          (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
-        "
-        :items-per-page="table?.tableApi.getState().pagination.pageSize"
-        :total="subjectsResult?.meta?.total ?? 0"
-        @update:page="
-          p => {
-            currentPage = p;
-            pagination.pageIndex = p - 1;
-          }
-        "
-        :ui="{
-          last: 'rotate-180 aspect-square h-10 grid place-items-center',
-          next: 'rotate-180 aspect-square h-10 grid place-items-center',
-          first: 'rotate-180 aspect-square h-10 grid place-items-center',
-          prev: 'rotate-180 aspect-square h-10 grid place-items-center',
-          item: 'aspect-square h-10 grid place-items-center',
-        }" />
-    </div>
 
     <!-- ➕ Add Modal -->
     <UModal

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { getPaginationRowModel } from '@tanstack/vue-table';
-import { UButton } from '#components';
 
 useHead({ title: 'المجموعات' });
 
@@ -436,7 +435,7 @@ const expanded = ref({});
             refresh();
           }
         ">
-        إعادة تعيين الفلاتر
+        تحديث
       </UButton>
 
       <UButton
@@ -607,10 +606,10 @@ const expanded = ref({});
     <!-- فصل الأكاديمي Modal -->
     <UModal
       v-model:open="teacherActionModal.open"
+      v-show="teacherActionModal.action === 'detach'"
       title="فصل الأكاديمي"
       description="هل أنت متأكد من فصل هذا الأكاديمي من المجموعة؟"
-      :ui="{ header: 'border-b-0' }"
-      v-if="teacherActionModal.action === 'detach'">
+      :ui="{ header: 'border-b-0' }">
       <template #body>
         <div class="flex justify-end gap-2 mt-4">
           <UButton
