@@ -1,80 +1,154 @@
 <script setup lang="ts">
-import { DateFormatter, getLocalTimeZone, CalendarDate, today } from '@internationalized/date'
-import type { Range } from '~/types'
+import {
+  DateFormatter,
+  getLocalTimeZone,
+  CalendarDate,
+  today,
+} from '@internationalized/date';
+import type { Range } from '~/types';
 
-const df = new DateFormatter('en-US', {
-  dateStyle: 'medium'
-})
+const df = new DateFormatter('ar', {
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  calendar: 'gregory',
+  localeMatcher: 'lookup',
+});
 
-const selected = defineModel<Range>({ required: true })
+// Patch month names to English (e.g. "يوليو" instead of "ذو الحجة")
+const enMonths = [
+  'يناير',
+  'فبراير',
+  'مارس',
+  'أبريل',
+  'مايو',
+  'يونيو',
+  'يوليو',
+  'أغسطس',
+  'سبتمبر',
+  'أكتوبر',
+  'نوفمبر',
+  'ديسمبر',
+];
+const enMonthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+function formatDate(date: Date) {
+  // Format in Arabic, then replace month with English
+  const parts = df.formatToParts(date);
+  let result = '';
+  for (const part of parts) {
+    if (part.type === 'month') {
+      // Get month index
+      const monthIndex = enMonths.indexOf(part.value);
+      if (monthIndex !== -1) {
+        result += enMonthNames[monthIndex];
+      } else {
+        result += part.value;
+      }
+    } else {
+      result += part.value;
+    }
+  }
+  return result;
+}
+
+const selected = defineModel<Range>({ required: true });
 
 const ranges = [
-  { label: 'Last 7 days', days: 7 },
-  { label: 'Last 14 days', days: 14 },
-  { label: 'Last 30 days', days: 30 },
-  { label: 'Last 3 months', months: 3 },
-  { label: 'Last 6 months', months: 6 },
-  { label: 'Last year', years: 1 }
-]
+  { label: 'آخر 7 أيام', days: 7 },
+  { label: 'آخر 14 يومًا', days: 14 },
+  { label: 'آخر 30 يومًا', days: 30 },
+  { label: 'آخر 3 أشهر', months: 3 },
+  { label: 'آخر 6 أشهر', months: 6 },
+  { label: 'آخر سنة', years: 1 },
+];
 
 const toCalendarDate = (date: Date) => {
   return new CalendarDate(
     date.getFullYear(),
     date.getMonth() + 1,
     date.getDate()
-  )
-}
+  );
+};
 
 const calendarRange = computed({
   get: () => ({
-    start: selected.value.start ? toCalendarDate(selected.value.start) : undefined,
-    end: selected.value.end ? toCalendarDate(selected.value.end) : undefined
+    start: selected.value.start
+      ? toCalendarDate(selected.value.start)
+      : undefined,
+    end: selected.value.end ? toCalendarDate(selected.value.end) : undefined,
   }),
-  set: (newValue: { start: CalendarDate | null, end: CalendarDate | null }) => {
+  set: (newValue: { start: CalendarDate | null; end: CalendarDate | null }) => {
     selected.value = {
-      start: newValue.start ? newValue.start.toDate(getLocalTimeZone()) : new Date(),
-      end: newValue.end ? newValue.end.toDate(getLocalTimeZone()) : new Date()
-    }
-  }
-})
+      start: newValue.start
+        ? newValue.start.toDate(getLocalTimeZone())
+        : new Date(),
+      end: newValue.end ? newValue.end.toDate(getLocalTimeZone()) : new Date(),
+    };
+  },
+});
 
-const isRangeSelected = (range: { days?: number, months?: number, years?: number }) => {
-  if (!selected.value.start || !selected.value.end) return false
+const isRangeSelected = (range: {
+  days?: number;
+  months?: number;
+  years?: number;
+}) => {
+  if (!selected.value.start || !selected.value.end) return false;
 
-  const currentDate = today(getLocalTimeZone())
-  let startDate = currentDate.copy()
-
-  if (range.days) {
-    startDate = startDate.subtract({ days: range.days })
-  } else if (range.months) {
-    startDate = startDate.subtract({ months: range.months })
-  } else if (range.years) {
-    startDate = startDate.subtract({ years: range.years })
-  }
-
-  const selectedStart = toCalendarDate(selected.value.start)
-  const selectedEnd = toCalendarDate(selected.value.end)
-
-  return selectedStart.compare(startDate) === 0 && selectedEnd.compare(currentDate) === 0
-}
-
-const selectRange = (range: { days?: number, months?: number, years?: number }) => {
-  const endDate = today(getLocalTimeZone())
-  let startDate = endDate.copy()
+  const currentDate = today(getLocalTimeZone());
+  let startDate = currentDate.copy();
 
   if (range.days) {
-    startDate = startDate.subtract({ days: range.days })
+    startDate = startDate.subtract({ days: range.days });
   } else if (range.months) {
-    startDate = startDate.subtract({ months: range.months })
+    startDate = startDate.subtract({ months: range.months });
   } else if (range.years) {
-    startDate = startDate.subtract({ years: range.years })
+    startDate = startDate.subtract({ years: range.years });
+  }
+
+  const selectedStart = toCalendarDate(selected.value.start);
+  const selectedEnd = toCalendarDate(selected.value.end);
+
+  return (
+    selectedStart.compare(startDate) === 0 &&
+    selectedEnd.compare(currentDate) === 0
+  );
+};
+
+const selectRange = (range: {
+  days?: number;
+  months?: number;
+  years?: number;
+}) => {
+  const endDate = today(getLocalTimeZone());
+  let startDate = endDate.copy();
+
+  if (range.days) {
+    startDate = startDate.subtract({ days: range.days });
+  } else if (range.months) {
+    startDate = startDate.subtract({ months: range.months });
+  } else if (range.years) {
+    startDate = startDate.subtract({ years: range.years });
   }
 
   selected.value = {
     start: startDate.toDate(getLocalTimeZone()),
-    end: endDate.toDate(getLocalTimeZone())
-  }
-}
+    end: endDate.toDate(getLocalTimeZone()),
+  };
+};
 </script>
 
 <template>
@@ -83,8 +157,7 @@ const selectRange = (range: { days?: number, months?: number, years?: number }) 
       color="neutral"
       variant="ghost"
       icon="i-lucide-calendar"
-      class="data-[state=open]:bg-elevated group"
-    >
+      class="data-[state=open]:bg-elevated group">
       <span class="truncate">
         <template v-if="selected.start">
           <template v-if="selected.end">
@@ -94,13 +167,13 @@ const selectRange = (range: { days?: number, months?: number, years?: number }) 
             {{ df.format(selected.start) }}
           </template>
         </template>
-        <template v-else>
-          Pick a date
-        </template>
+        <template v-else>اختر تاريخًا</template>
       </span>
 
       <template #trailing>
-        <UIcon name="i-lucide-chevron-down" class="shrink-0 text-dimmed size-5 group-data-[state=open]:rotate-180 transition-transform duration-200" />
+        <UIcon
+          name="i-lucide-chevron-down"
+          class="shrink-0 text-dimmed size-5 group-data-[state=open]:rotate-180 transition-transform duration-200" />
       </template>
     </UButton>
 
@@ -114,18 +187,18 @@ const selectRange = (range: { days?: number, months?: number, years?: number }) 
             color="neutral"
             variant="ghost"
             class="rounded-none px-4"
-            :class="[isRangeSelected(range) ? 'bg-elevated' : 'hover:bg-elevated/50']"
+            :class="[
+              isRangeSelected(range) ? 'bg-elevated' : 'hover:bg-elevated/50',
+            ]"
             truncate
-            @click="selectRange(range)"
-          />
+            @click="selectRange(range)" />
         </div>
 
         <UCalendar
           v-model="calendarRange"
           class="p-2"
           :number-of-months="2"
-          range
-        />
+          range />
       </div>
     </template>
   </UPopover>

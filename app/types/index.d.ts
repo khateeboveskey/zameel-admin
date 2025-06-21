@@ -133,7 +133,7 @@ declare global {
     password_confirmation: string
   }
 
-  type Period = 'daily' | 'weekly' | 'monthly'
+  type Period = 'يومي' | 'أسبوعي' | 'شهري'
 
   interface Range {
     start: Date
