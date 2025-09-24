@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick } from 'vue';
-import type { TableColumn, DropdownMenuItem } from '@nuxt/ui';
+import type { TableColumn } from '@nuxt/ui';
 
 useHead({ title: 'المواد' });
 
-// ——— Refs & State ———
-const table = useTemplateRef('table');
-const toast = useToast();
+// ——— Composables ———
+const { createResource, updateResource, deleteResource } = 
+  useResourceManager<ISubject>('المادة', {
+    create: '/subjects',
+    update: (id) => `/subjects/${id}`,
+    delete: (id) => `/subjects/${id}`,
+  });
 
-// Search
-const searchTerm = ref('');
+const { searchTerm } = useSearchAndFilter(1000, { filterFields: ['name'] });
+const { 
+  addModalOpen, editModalOpen, deleteModalOpen,
+  openAddModal, closeAddModal, openEditModal, closeEditModal,
+  openDeleteModal, closeDeleteModal
+} = useModalState();
 
-// New / Edit Modal State
+// ——— Form State ———
 const newSubject = reactive({ name: '', pending: false });
 const editSubject = reactive<{
   id: number | null;
@@ -22,14 +29,9 @@ const editSubject = reactive<{
   name: '',
   pending: false,
 });
-
-// Delete State
 const deletedSubjectId = ref<number | null>(null);
-const addModalOpen = ref(false);
-const editModalOpen = ref(false);
-const deleteModalOpen = ref(false);
 
-// ——— Fetch Subjects (Search Endpoint Only) ———
+// ——— Fetch Subjects ———
 const {
   data: subjectsResult,
   pending: loading,
@@ -50,120 +52,51 @@ const filteredSubjects = computed(() => {
 });
 
 // ——— CRUD Operations ———
-
-// **Add Subject**
 const addSubject = async () => {
   if (!newSubject.name.trim()) return;
 
   newSubject.pending = true;
-  const { error } = await useCachedFetch<ISubject>('/subjects', {
-    method: 'POST',
-    body: { name: newSubject.name.trim() },
-  });
-
-  if (error.value) {
-    toast.add({
-      title: 'خطأ عند إضافة مادة',
-      description: error.value.message,
-      color: 'error',
-      icon: 'i-lucide-alert-triangle',
-    });
-  } else {
-    toast.add({
-      title: 'تمت إضافة مادة',
-      description: `تمت إضافة "${newSubject.name.trim()}".`,
-      color: 'success',
-      icon: 'i-lucide-circle-check',
-    });
-    refresh();
+  const result = await createResource({ name: newSubject.name.trim() }, refresh);
+  
+  if (result.success) {
+    newSubject.name = '';
+    closeAddModal();
   }
-
-  newSubject.name = '';
   newSubject.pending = false;
-  addModalOpen.value = false;
 };
 
-// **Update Subject**
 const updateSubject = async () => {
   if (!editSubject.id || !editSubject.name.trim()) return;
 
   editSubject.pending = true;
-  const { error } = await useCachedFetch<ISubject>(
-    `/subjects/${editSubject.id}`,
-    {
-      method: 'PATCH',
-      body: { name: editSubject.name.trim() },
-    }
-  );
-
-  if (error.value) {
-    toast.add({
-      title: 'خطأ عند تعديل مادة',
-      description: error.value.message,
-      color: 'error',
-      icon: 'i-lucide-alert-triangle',
-    });
-  } else {
-    toast.add({
-      title: 'تم تعديل مادة',
-      description: `تم تحديث "${editSubject.name.trim()}".`,
-      color: 'success',
-      icon: 'i-lucide-circle-check',
-    });
-    refresh();
+  const result = await updateResource(editSubject.id, { name: editSubject.name.trim() }, refresh);
+  
+  if (result.success) {
+    editSubject.id = null;
+    editSubject.name = '';
+    closeEditModal();
   }
-
-  editSubject.id = null;
-  editSubject.name = '';
   editSubject.pending = false;
-  editModalOpen.value = false;
 };
 
-// **Delete Subject**
-const deleteSubject = async () => {
+const deleteSubjectConfirm = async () => {
   if (!deletedSubjectId.value) return;
 
-  const { data: deleted, error } = await useCachedFetch<
-    IFetchResponse<ISubject>
-  >(`/subjects/${deletedSubjectId.value}`, { method: 'DELETE' });
+  const subjectToDelete = filteredSubjects.value.find(
+    subject => subject.id === deletedSubjectId.value
+  );
+  if (!subjectToDelete) return;
 
-  if (error.value) {
-    toast.add({
-      title: 'خطأ عند حذف مادة',
-      description: error.value.message,
-      color: 'error',
-      icon: 'i-lucide-alert-triangle',
-    });
-  } else {
-    toast.add({
-      title: 'تم حذف مادة',
-      description: `تم حذف "${deleted.value?.data.name}".`,
-      color: 'success',
-      icon: 'i-lucide-circle-check',
-    });
-    refresh();
+  const result = await deleteResource(deletedSubjectId.value, subjectToDelete.name, refresh);
+  
+  if (result.success) {
+    deletedSubjectId.value = null;
+    closeDeleteModal();
   }
-
-  deletedSubjectId.value = null;
-  deleteModalOpen.value = false;
 };
 
-// ——— Table Columns & Actions ———
-const actionsList: DropdownMenuItem[] = [
-  {
-    label: 'تعديل',
-    icon: 'i-lucide-pencil',
-    slot: 'edit' as const,
-  },
-  {
-    label: 'حذف',
-    icon: 'i-lucide-trash',
-    color: 'error',
-    slot: 'delete' as const,
-  },
-];
-
-const columns: TableColumn<ISubject>[] = [
+// ——— Table Columns ———
+const columns: TableColumn[] = [
   {
     accessorKey: 'id',
     header: 'المعرف',
@@ -191,23 +124,19 @@ const columns: TableColumn<ISubject>[] = [
   },
 ];
 
-// ——— Helper to Open Modals ———
-function openEditModal(subject: ISubject) {
-  editModalOpen.value = false;
-  nextTick(() => {
+// ——— Modal Handlers ———
+const handleEditModal = (subject: ISubject) => {
+  openEditModal(() => {
     editSubject.id = subject.id;
     editSubject.name = subject.name;
-    editModalOpen.value = true;
   });
-}
+};
 
-function openDeleteModal(id: number) {
-  deleteModalOpen.value = false;
-  nextTick(() => {
+const handleDeleteModal = (id: number) => {
+  openDeleteModal(() => {
     deletedSubjectId.value = id;
-    deleteModalOpen.value = true;
   });
-}
+};
 
 // ——— Page Meta ———
 definePageMeta({
@@ -218,133 +147,66 @@ definePageMeta({
 
 <template>
   <div class="space-y-4 pb-4">
-    <!-- 📌 Search & Controls -->
-    <div class="flex gap-4 items-center">
-      <UInput
-        v-model="searchTerm"
-        placeholder="بحث باسم المقرر"
-        icon="i-lucide-search"
-        class="w-full"
-        clearable />
-      <UButton
-        icon="i-lucide-rotate-ccw"
-        color="neutral"
-        class="text-nowrap"
-        variant="outline"
-        @click="searchTerm = ''">
-        تحديث
-      </UButton>
-
-      <UButton
-        icon="i-lucide-plus"
-        color="primary"
-        class="text-nowrap"
-        @click="addModalOpen = true">
-        إضافة مادة
-      </UButton>
-    </div>
-
-    <!-- 🗃️ Data Table -->
-    <UTable
-      ref="table"
-      empty="لا يوجد بيانات"
-      :loading="loading"
-      :columns="columns as any"
-      :data="filteredSubjects"
-      :ui="{
-        base: 'table-fixed border-separate border-spacing-0',
-        thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
-        tbody: '[&>tr]:last:[&>td]:border-b-0',
-        th: 'py-2 first:rounded-s-lg last:rounded-e-lg border-y border-default first:border-s last:border-e text-right',
-      }">
-      <template #actions-cell="{ row }">
-        <UDropdownMenu
-          :items="actionsList"
-          :popper="{ placement: 'bottom-start' }">
-          <UButton
-            icon="i-lucide-more-vertical"
-            color="neutral"
-            variant="ghost" />
-          <template #edit-label>
-            <div @click="openEditModal(row.original)">تعديل</div>
-          </template>
-          <template #delete-label>
-            <div @click="openDeleteModal(row.original.id)">حذف</div>
-          </template>
-        </UDropdownMenu>
+    <!-- Search & Controls -->
+    <SearchBar 
+      v-model="searchTerm" 
+      placeholder="بحث باسم المقرر"
+      @refresh="refresh">
+      <template #actions>
+        <UButton
+          icon="i-lucide-plus"
+          color="primary"
+          class="text-nowrap"
+          @click="openAddModal">
+          إضافة مادة
+        </UButton>
       </template>
-    </UTable>
+    </SearchBar>
 
-    <!-- ➕ Add Modal -->
-    <UModal
+    <!-- Data Table -->
+    <DataTable
+      :data="filteredSubjects"
+      :columns="columns"
+      :loading="loading"
+      :show-pagination="false"
+      @edit="handleEditModal"
+      @delete="handleDeleteModal" />
+
+    <!-- Add Modal -->
+    <FormModal
       v-model:open="addModalOpen"
       title="إضافة مادة جديدة"
-      description="أدخل اسم المادة الجديدة">
-      <template #body>
-        <UFormField label="الاسم" name="name">
+      description="أدخل اسم المادة الجديدة"
+      :is-pending="newSubject.pending"
+      @submit="addSubject"
+      @cancel="closeAddModal">
+      <template #default>
+        <UFormField label="اسم المادة" name="name">
           <UInput v-model="newSubject.name" class="w-full" />
         </UFormField>
-        <div class="flex justify-end gap-2 mt-4">
-          <UButton
-            label="إلغاء"
-            color="neutral"
-            variant="outline"
-            @click="addModalOpen = false" />
-          <UButton
-            label="حفظ"
-            icon="i-lucide-save"
-            color="primary"
-            :loading="newSubject.pending"
-            @click="addSubject" />
-        </div>
       </template>
-    </UModal>
+    </FormModal>
 
-    <!-- ✏️ Edit Modal -->
-    <UModal
+    <!-- Edit Modal -->
+    <FormModal
       v-model:open="editModalOpen"
       title="تعديل المادة"
-      description="قم بتعديل بيانات المادة">
-      <template #body>
-        <UFormField label="الاسم" name="name">
+      description="قم بتعديل اسم المادة"
+      :is-pending="editSubject.pending"
+      @submit="updateSubject"
+      @cancel="closeEditModal">
+      <template #default>
+        <UFormField label="اسم المادة" name="name">
           <UInput v-model="editSubject.name" class="w-full" />
         </UFormField>
-        <div class="flex justify-end gap-2 mt-4">
-          <UButton
-            label="إلغاء"
-            color="neutral"
-            variant="outline"
-            @click="editModalOpen = false" />
-          <UButton
-            label="حفظ"
-            icon="i-lucide-save"
-            color="primary"
-            :loading="editSubject.pending"
-            @click="updateSubject" />
-        </div>
       </template>
-    </UModal>
+    </FormModal>
 
-    <!-- 🗑️ Delete Modal -->
-    <UModal
+    <!-- Delete Modal -->
+    <DeleteModal
       v-model:open="deleteModalOpen"
-      title="حذف المادة"
-      description="هل أنت متأكد من حذف هذه المادة؟"
-      :ui="{ header: 'border-b-0' }">
-      <template #body>
-        <div class="flex justify-end gap-2 mt-4">
-          <UButton
-            label="إلغاء"
-            color="neutral"
-            variant="outline"
-            @click="deleteModalOpen = false" />
-          <UButton
-            label="حذف"
-            icon="i-lucide-trash"
-            color="error"
-            @click="deleteSubject" />
-        </div>
-      </template>
-    </UModal>
+      resource-name="المادة"
+      @confirm="deleteSubjectConfirm"
+      @cancel="closeDeleteModal" />
   </div>
 </template>
